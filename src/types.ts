@@ -55,12 +55,7 @@ export interface SortOption {
     label: string;
 }
 
-/**
- * Відповідь для операцій масового видалення.
- */
 export interface BatchDeleteResponse {
-    /** IDs успішно видалених елементів */
     success: string[];
-    /** IDs, які не вдалося видалити */
     failed: string[];
   }

@@ -1,27 +1,23 @@
 import React from 'react';
 
-// Props for the SearchInput component
 interface SearchInputProps {
-    value: string; // Current input value
-    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void; // Handler for input value change
-    placeholder?: string; // Optional placeholder text
-    disabled?: boolean; // Indicates if the input is disabled
+    value: string;
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    disabled?: boolean;
 }
 
-// SearchInput functional component
 const SearchInput: React.FC<SearchInputProps> = ({ value, onChange, placeholder = "Пошук...", disabled }) => {
 
     return (
-        // Container for the input and icon with relative positioning
         <div className="relative w-full max-w-xs">
-            {/* Input field */}
             <input
                 type="text"
-                data-testid="search-input" // For testing
-                placeholder={placeholder} // Use placeholder from props
-                value={value} // Controlled component value
-                onChange={onChange} // Change handler
-                disabled={disabled} // Disabled state
+                data-testid="search-input"
+                placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                disabled={disabled}
                 className="
                     w-full
                     pl-4 pr-10 // Padding for text (left) and icon space (right)
@@ -44,11 +40,7 @@ const SearchInput: React.FC<SearchInputProps> = ({ value, onChange, placeholder 
                     disabled:opacity-50 disabled:cursor-not-allowed
                 "
             />
-            {/* Icon container with absolute positioning */}
-            <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                {/* Icon */}
-                {/* <img src={searchIcon} alt="Search Icon" className="h-5 w-5 text-gray-400 dark:text-gray-300" /> */}
-            </span>
+            <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"></span>
         </div>
     );
 }
