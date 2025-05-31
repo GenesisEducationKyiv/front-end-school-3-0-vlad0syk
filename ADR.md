@@ -1,4 +1,4 @@
-## Architectural Decision Record: Optimizing TrackItem Component and Track List Scalability
+## Architectural Decision Record: Improving Performance and Scalability of TrackItem and TrackList Components
 
 ### Status: Proposed
 
