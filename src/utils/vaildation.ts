@@ -4,7 +4,7 @@ export function isValidUrl(string: string): boolean {
         const url = new URL(string);
         return url.protocol === 'http:' || url.protocol === 'https:';
     }
-    catch (e) {
+    catch {
         return false;
     }
 }

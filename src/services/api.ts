@@ -1,34 +1,118 @@
-// This file contains functions for making API calls to the backend.
-import { Track, CreateTrackDto, UpdateTrackDto, QueryParams, PaginatedResponse, Genre, BatchDeleteResponse } from '../types.ts';
+import {
+    Track,
+    CreateTrackDto,
+    UpdateTrackDto,
+    QueryParams,
+    PaginatedResponse,
+    Genre,
+    BatchDeleteResponse,
+    TrackSchema,
+    PaginatedResponseSchema,
+    GenreSchema,
+    BatchDeleteResponseSchema,
+    ApiErrorSchema
+} from '../types.ts';
 
-// Base URL of your API server
-// Make sure this matches your backend's address
-const API_BASE_URL = 'http://localhost:8000'; // REPLACE WITH YOUR SERVER ADDRESS IF DIFFERENT
+import { z } from 'zod';
+import { Result, ok, err } from 'neverthrow';
 
-// Helper function to handle API responses
-async function handleResponse<T>(response: Response): Promise<T> {
-    // Check if the response status is OK (2xx range)
-    if (!response.ok) {
-        // Attempt to parse error details from the response body
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-        console.error('API Error:', response.status, errorData);
-        // Throw an error with details from the backend or HTTP status
-        throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+const API_BASE_URL = 'http://localhost:8000';
+
+async function handleResponseWithZod<T>(
+    response: Response,
+    schema: z.ZodSchema<T>
+): Promise<Result<T, Error>> {
+    try {
+        if (!response.ok) {
+            let errorDetails: unknown = { error: `HTTP error! status: ${response.status}` };
+            let errorMessage = `HTTP error! status: ${response.status} ${response.statusText}`;
+
+            const errorHasBody = response.headers.get('content-length') !== '0' && response.headers.get('content-type')?.includes('application/json');
+
+            if (errorHasBody) {
+                try {
+                    const jsonError = await response.json();
+                    const parsedApiError = ApiErrorSchema.safeParse(jsonError);
+
+                    if (parsedApiError.success) {
+                        errorDetails = parsedApiError.data;
+                        errorMessage = parsedApiError.data.error || parsedApiError.data.error || errorMessage;
+                    } else {
+                        errorDetails = { error: JSON.stringify(jsonError) || `HTTP error! status: ${response.status}` };
+                        errorMessage = JSON.stringify(jsonError) || `HTTP error! status: ${response.status}`;
+                    }
+                } catch (jsonParseError) {
+                    errorDetails = { error: `HTTP error! status: ${response.status}. Could not parse error response.` };
+                    errorMessage = `HTTP error! status: ${response.status}. Could not parse error response.`;
+                    console.warn("Failed to parse error response as JSON:", jsonParseError);
+                }
+            } else {
+                errorDetails = { error: `HTTP error! status: ${response.status}. No JSON error body.` };
+                errorMessage = `HTTP error! status: ${response.status}. No JSON error body.`;
+            }
+            console.error('API Error:', response.status, errorDetails);
+            return err(new Error(errorMessage));
+        }
+
+        const contentLength = response.headers.get('content-length');
+        const isResponseEmpty = response.status === 204 || (contentLength !== null && parseInt(contentLength) === 0);
+        const isContentTypeJson = response.headers.get('content-type')?.includes('application/json');
+
+        if (schema instanceof z.ZodVoid) {
+            if (isResponseEmpty) {
+                return ok(undefined as T);
+            } else {
+                let rawData: unknown;
+                try {
+                    if (isContentTypeJson) {
+                        rawData = await response.json();
+                        if (typeof rawData === 'object' && rawData !== null && Object.keys(rawData).length === 0) {
+                            return ok(undefined as T);
+                        }
+                    } else {
+                        const textData = await response.text();
+                        if (textData.trim() === '') {
+                             return ok(undefined as T);
+                        }
+                        return err(new Error(`Expected empty response for void schema, but got non-JSON text: ${textData}`));
+                    }
+                } catch (e) {
+                    return err(new Error(`Expected void response, but got invalid content or parsing error: ${e}`));
+                }
+                console.error('Expected void response, but got unexpected non-empty data for void schema:', rawData);
+                return err(new Error(`Expected void response, but got unexpected data: ${JSON.stringify(rawData)}`));
+            }
+        }
+
+        if (isResponseEmpty) {
+            return err(new Error('API returned an empty response when data was expected.'));
+        }
+        
+        if (!isContentTypeJson) {
+            const rawText = await response.text();
+            return err(new Error(`Expected JSON response, but got content type '${response.headers.get('content-type') || 'none'}'. Raw content: ${rawText.substring(0, 100)}...`));
+        }
+
+        const rawData: unknown = await response.json();
+
+        const parsedData = schema.safeParse(rawData);
+
+        if (!parsedData.success) {
+            console.error('Data parsing error:', parsedData.error);
+            return err(new Error(`Failed to parse API response: ${parsedData.error.message}`));
+        }
+
+        return ok(parsedData.data);
+    } catch (e: unknown) {
+        console.error('Network or unexpected API error in catch block:', e);
+        if (e instanceof Error) {
+            return err(e);
+        }
+        return err(new Error('An unknown error occurred during API call.'));
     }
-    // For 204 No Content responses (like successful DELETE), there is no body
-    if (response.status === 204) {
-         return undefined as T; // Return undefined for void promises
-    }
-    // Parse the JSON response body for successful requests
-    return response.json() as Promise<T>;
 }
 
-
-// --- API Call Functions ---
-
-// GET /tracks - Fetch a list of tracks with pagination, sorting, filtering, and search
-export const fetchTracks = async (params: QueryParams): Promise<PaginatedResponse<Track>> => {
-    // Construct query string from parameters
+export const fetchTracks = async (params: QueryParams): Promise<Result<PaginatedResponse<Track>, Error>> => {
     const query = new URLSearchParams();
     if (params.page) query.append('page', params.page.toString());
     if (params.limit) query.append('limit', params.limit.toString());
@@ -39,17 +123,15 @@ export const fetchTracks = async (params: QueryParams): Promise<PaginatedRespons
     if (params.artist) query.append('artist', params.artist);
 
     const response = await fetch(`${API_BASE_URL}/api/tracks?${query.toString()}`);
-    return handleResponse<PaginatedResponse<Track>>(response);
+    return handleResponseWithZod(response, PaginatedResponseSchema);
 };
 
-// GET /genres - Fetch a list of available genres
-export const fetchGenres = async (): Promise<Genre[]> => {
+export const fetchGenres = async (): Promise<Result<Genre[], Error>> => {
     const response = await fetch(`${API_BASE_URL}/api/genres`);
-    return handleResponse<Genre[]>(response);
+    return handleResponseWithZod(response, z.array(GenreSchema));
 };
 
-// POST /tracks - Create a new track
-export const createTrack = async (newTrackData: CreateTrackDto): Promise<Track> => {
+export const createTrack = async (newTrackData: CreateTrackDto): Promise<Result<Track, Error>> => {
     const response = await fetch(`${API_BASE_URL}/api/tracks`, {
         method: 'POST',
         headers: {
@@ -57,60 +139,52 @@ export const createTrack = async (newTrackData: CreateTrackDto): Promise<Track> 
         },
         body: JSON.stringify(newTrackData),
     });
-    return handleResponse<Track>(response);
+    return handleResponseWithZod(response, TrackSchema);
 };
 
-// PUT /tracks/{id} - Update an existing track by ID
-export const updateTrack = async ({ id, data }: { id: string; data: UpdateTrackDto }): Promise<Track> => {
+export const updateTrack = async ({ id, data }: { id: string; data: UpdateTrackDto }): Promise<Result<Track, Error>> => {
     const response = await fetch(`${API_BASE_URL}/api/tracks/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data), // Send only the updated data
+        body: JSON.stringify(data),
     });
-    return handleResponse<Track>(response);
+    return handleResponseWithZod(response, TrackSchema);
 };
 
-// DELETE /tracks/{id} - Delete a track by ID
-export const deleteTrack = async (id: string): Promise<void> => {
+export const deleteTrack = async (id: string): Promise<Result<void, Error>> => {
     const response = await fetch(`${API_BASE_URL}/api/tracks/${id}`, {
         method: 'DELETE',
     });
-    // handleResponse will return undefined for 204 status
-    await handleResponse<void>(response);
+    return handleResponseWithZod(response, z.void());
 };
 
-// POST /tracks/delete - Delete multiple tracks by IDs
-export const deleteMultipleTracks = async (ids: string[]): Promise<BatchDeleteResponse> => {
-     const response = await fetch(`${API_BASE_URL}/api/tracks/delete`, {
-         method: 'POST',
-         headers: {
-             'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({ ids }), // Send array of IDs in the body
-     });
-     return handleResponse<BatchDeleteResponse>(response);
+export const deleteMultipleTracks = async (ids: string[]): Promise<Result<BatchDeleteResponse, Error>> => {
+    const response = await fetch(`${API_BASE_URL}/api/tracks/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids }),
+    });
+    return handleResponseWithZod(response, BatchDeleteResponseSchema);
 };
 
-// POST /tracks/{id}/upload - Upload an audio file for a track
-export const uploadAudioFile = async ({ id, file }: { id: string; file: File }): Promise<Track> => {
+export const uploadAudioFile = async ({ id, file }: { id: string; file: File }): Promise<Result<Track, Error>> => {
     const formData = new FormData();
-    formData.append('file', file); // 'file' should match the expected key on the server
+    formData.append('file', file);
 
     const response = await fetch(`${API_BASE_URL}/api/tracks/${id}/upload`, {
         method: 'POST',
-        body: formData, // Use FormData body
-        // Do NOT manually set Content-Type for FormData, browser handles it
+        body: formData,
     });
-    return handleResponse<Track>(response);
+    return handleResponseWithZod(response, TrackSchema);
 };
 
-// DELETE /tracks/{id}/file - Delete the audio file associated with a track
-export const deleteAudioFile = async (id: string): Promise<Track> => {
+export const deleteAudioFile = async (id: string): Promise<Result<Track, Error>> => {
     const response = await fetch(`${API_BASE_URL}/api/tracks/${id}/file`, {
         method: 'DELETE',
     });
-    // Expect the updated track object in the response body after deletion
-    return handleResponse<Track>(response);
+    return handleResponseWithZod(response, TrackSchema);
 };
