@@ -1,4 +1,4 @@
-## Architectural Decision Record: Improving Performance and Scalability of TrackItem and TrackList Components
+## ADR-001: Improving Performance and Scalability of TrackItem and TrackList Components
 
 ### Status: Proposed
 
