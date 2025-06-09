@@ -39,9 +39,6 @@ const SearchInput: React.FC<SearchInputProps> = ({ value, onChange, placeholder 
           disabled:opacity-50 disabled:cursor-not-allowed
         "
       />
-      <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        {/* <img src={searchIcon} alt="Search Icon" className="h-5 w-5 text-gray-400 dark:text-gray-300" /> */}
-      </span>
     </div>
   );
 }
