@@ -1,66 +1,23 @@
 import { z } from 'zod';
 
-export interface Track {
-    id: string;
-    title: string;
-    artist: string;
-    album?: string;
-    genres: string[];
-    slug: string;
-    coverImage?: string;
-    audioFile?: string;
-    createdAt: string;
-    updatedAt: string;
-}
+export type Track = z.infer<typeof TrackSchema>;
 
-export type Genre = string;
+export type Genre = z.infer<typeof GenreSchema>;
 
-export interface CreateTrackDto {
-    title: string;
-    artist: string;
-    album?: string;
-    genres: string[];
-    coverImage?: string;
-}
+export type CreateTrackDto = z.infer<typeof CreateTrackDtoSchema>;
 
-export interface UpdateTrackDto {
-    title?: string;
-    artist?: string;
-    album?: string;
-    genres?: string[];
-    coverImage?: string;
-    audioFile?: string;
-}
+export type UpdateTrackDto = z.infer<typeof UpdateTrackDtoSchema>;
 
-export interface QueryParams {
-    page?: number;
-    limit?: number;
-    sort?: 'title' | 'artist' | 'album' | 'createdAt';
-    order?: 'asc' | 'desc';
-    search?: string;
-    genre?: string;
-    artist?: string;
-}
+export type QueryParams = z.infer<typeof QueryParamsSchema>;
 
-export interface PaginatedResponse<T> {
-    data: T[];
-    meta: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
-}
+export type PaginatedResponse<T> = z.infer<typeof PaginatedResponseSchema>;
 
 export interface SortOption {
     value: `${Exclude<QueryParams['sort'], undefined>}_${Exclude<QueryParams['order'], undefined>}`;
     label: string;
 }
 
-export interface BatchDeleteResponse {
-    success: string[];
-    failed: string[];
-}
+export type BatchDeleteResponse = z.infer<typeof BatchDeleteResponseSchema>;
 
 export const GenreSchema = z.string();
 
@@ -99,9 +56,9 @@ export const QueryParamsSchema = z.object({
     limit: z.number().int().positive(),
     sort: z.union([z.literal('title'), z.literal('artist'), z.literal('album'), z.literal('createdAt')]),
     order: z.union([z.literal('asc'), z.literal('desc')]),
-    search: z.string(),
-    genre: z.string(),
-    artist: z.string(),
+    search: z.string().optional(), // Зробіть search необов'язковим відповідно до інтерфейсу
+    genre: z.string().optional(), // Зробіть genre необов'язковим відповідно до інтерфейсу
+    artist: z.string().optional(), // Зробіть artist необов'язковим відповідно до інтерфейсу
 }).partial();
 
 export const PaginatedMetaSchema = z.object({
