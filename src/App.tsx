@@ -12,15 +12,14 @@ import CreateTrackModal from './components/modals/CreateTrackModal';
 import EditTrackModal from './components/modals/EditTrackModal';
 import ConfirmDialog from './components/modals/ConfirmDialog';
 import {
-    fetchTracks,
     createTrack,
     updateTrack,
     deleteTrack,
     deleteMultipleTracks,
-    fetchGenres,
-    uploadAudioFile,
-    deleteAudioFile,
-} from './services/api'; 
+    fetchTracks
+} from './services/api/track';
+import { uploadAudioFile, deleteAudioFile,} from './services/api/audioFile';
+import { fetchGenres } from './services/api/genres';
 import {
     Track,
     SortOption,

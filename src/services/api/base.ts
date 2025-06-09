@@ -3,6 +3,8 @@ import { Result, ok, err } from 'neverthrow';
 
 import { ApiErrorSchema } from '../../types.ts';
 
+export const API_BASE_URL = 'http://localhost:8000';
+
 export async function handleResponseWithZod<T>(
     response: Response,
     schema: z.ZodSchema<T>
