@@ -94,8 +94,7 @@ function App() {
         retry: 1,
     });
 
-    // Fetch genres
-    const { data: genres, isLoading: isLoadingGenres, isError: isErrorGenres, error: errorGenres } = useQuery<Genre[]>({
+    const { data: genres, isLoading: isLoadingGenres, isError: isErrorGenres, error: errorGenres } = useQuery<Genre[], Error>({
         queryKey: ['genres'],
         queryFn: async () => {
             const result = await fetchGenres();
@@ -109,10 +108,15 @@ function App() {
         retry: false,
     });
 
-    // --- Mutations ---
-
-    const createTrackMutation = useMutation({
-        mutationFn: createTrack,
+    const createTrackMutation = useMutation<Track, Error, CreateTrackDto>({
+        mutationFn: async (newTrackData: CreateTrackDto) => {
+            const result = await createTrack(newTrackData);
+            if (result.isOk()) {
+                return result.value;
+            } else {
+                throw result.error;
+            }
+        },
         onSuccess: (newTrack) => {
             queryClient.invalidateQueries({ queryKey: ['tracks'] });
             closeCreateModal();
@@ -144,9 +148,20 @@ function App() {
         }
     });
 
-    const deleteTrackMutation = useMutation({
-        mutationFn: deleteTrack,
-        // Optimistic update for single track deletion
+    const deleteTrackMutation = useMutation<
+        undefined,
+        Error,
+        string,
+        { previousTracksData: PaginatedResponse<Track> | undefined }
+    >({
+        mutationFn: async (deletedId: string) => {
+            const result = await deleteTrack(deletedId);
+            if (result.isOk()) {
+                return undefined;
+            } else {
+                throw result.error;
+            }
+        },
         onMutate: async (deletedId: string) => {
             await queryClient.cancelQueries({ queryKey: ['tracks', queryParams] });
             const previousTracksData = queryClient.getQueryData<PaginatedResponse<Track>>(['tracks', queryParams]);
@@ -185,76 +200,96 @@ function App() {
         },
     });
 
-    const deleteMultipleTracksMutation = useMutation({
-        mutationFn: deleteMultipleTracks,
-         // Optimistic update for bulk deletion
-         onMutate: async (deletedIds: string[]) => {
-             await queryClient.cancelQueries({ queryKey: ['tracks', queryParams] });
-             const previousTracksData = queryClient.getQueryData<PaginatedResponse<Track>>(['tracks', queryParams]);
+    const deleteMultipleTracksMutation = useMutation<
+        BatchDeleteResponse,
+        Error,
+        string[],
+        { previousTracksData: PaginatedResponse<Track> | undefined }
+    >({
+        mutationFn: async (deletedIds: string[]) => {
+            const result = await deleteMultipleTracks(deletedIds);
+            if (result.isOk()) {
+                return result.value;
+            } else {
+                throw result.error;
+            }
+        },
+        onMutate: async (deletedIds: string[]) => {
+            await queryClient.cancelQueries({ queryKey: ['tracks', queryParams] });
+            const previousTracksData = queryClient.getQueryData<PaginatedResponse<Track>>(['tracks', queryParams]);
 
-             if (previousTracksData) {
-                 queryClient.setQueryData<PaginatedResponse<Track>>(['tracks', queryParams], (oldData: PaginatedResponse<Track> | undefined) => {
-                     if (!oldData) return oldData;
-                     const newTracks = oldData.data.filter((track: Track) => !deletedIds.includes(track.id));
-                     return {
-                         ...oldData,
-                         data: newTracks,
-                         meta: { ...oldData.meta, total: oldData.meta.total > deletedIds.length ? oldData.meta.total - deletedIds.length : 0 }
-                     };
-                 });
-             }
-             setSelectedTrackIds(new Set()); // Clear selection
-             closeConfirmDialog();
-             toast.success(`Успішно видалено ${deletedIds.length} треків (оптимістично).`);
+            if (previousTracksData) {
+                queryClient.setQueryData<PaginatedResponse<Track>>(['tracks', queryParams], (oldData: PaginatedResponse<Track> | undefined) => {
+                    if (!oldData) return oldData;
+                    const newTracks = oldData.data.filter((track: Track) => !deletedIds.includes(track.id));
+                    return {
+                        ...oldData,
+                        data: newTracks,
+                        meta: { ...oldData.meta, total: oldData.meta.total > deletedIds.length ? oldData.meta.total - deletedIds.length : 0 }
+                    };
+                });
+            }
+            setSelectedTrackIds(new Set());
+            closeConfirmDialog();
+            toast.success(`Успішно видалено ${deletedIds.length} треків (оптимістично).`);
 
-             return { previousTracksData }; // Context for rollback
-         },
-        // Rollback on error
-         onError: (error: Error, deletedIds: string[], context) => {
-             console.error('Failed to delete multiple tracks:', error);
-             if (context?.previousTracksData) {
-                 queryClient.setQueryData<PaginatedResponse<Track>>(['tracks', queryParams], context.previousTracksData);
-             }
-             toast.error(`Помилка масового видалення: ${error.message}`);
-         },
-        // Invalidate on success to sync with server
-         onSuccess: (result: BatchDeleteResponse) => {
-             console.log('Tracks deleted successfully on server:', result);
-             queryClient.invalidateQueries({ queryKey: ['tracks'] });
-         },
+            return { previousTracksData };
+        },
+        onError: (error: Error, _deletedIds: string[], context) => {
+            console.error('Failed to delete multiple tracks:', error);
+            if (context?.previousTracksData) {
+                queryClient.setQueryData<PaginatedResponse<Track>>(['tracks', queryParams], context.previousTracksData);
+            }
+            toast.error(`Помилка масового видалення: ${error.message}`);
+        },
+        onSuccess: (result: BatchDeleteResponse) => {
+            console.log('Tracks deleted successfully on server:', result);
+            queryClient.invalidateQueries({ queryKey: ['tracks'] });
+        },
     });
 
-     // Mutation for audio file upload
-     const uploadFileMutation = useMutation({
-         mutationFn: ({ id, file }: { id: string; file: File }) => uploadAudioFile({ id, file }),
-         onSuccess: (updatedTrack) => {
-             queryClient.invalidateQueries({ queryKey: ['tracks'] });
-             toast.success(`Файл для треку "${updatedTrack.title}" успішно завантажено!`);
-         },
-         onError: (error: Error, variables) => {
-              console.error(`Failed to upload file for track ${variables.id}:`, error);
-              toast.error(`Помилка завантаження файлу: ${error.message}`);
-         },
-     });
+    const uploadFileMutation = useMutation<Track, Error, { id: string; file: File }>({
+        mutationFn: async ({ id, file }: { id: string; file: File }) => {
+            const result = await uploadAudioFile({ id, file });
+            if (result.isOk()) {
+                return result.value;
+            } else {
+                throw result.error;
+            }
+        },
+        onSuccess: (updatedTrack) => {
+            queryClient.invalidateQueries({ queryKey: ['tracks'] });
+            toast.success(`Файл для треку "${updatedTrack.title}" успішно завантажено!`);
+        },
+        onError: (error: Error, variables) => {
+            console.error(`Failed to upload file for track ${variables.id}:`, error);
+            toast.error(`Помилка завантаження файлу: ${error.message}`);
+        },
+    });
 
-     // Mutation for audio file deletion (called after confirm dialog)
-     const deleteFileMutation = useMutation({
-          mutationFn: (id: string) => deleteAudioFile(id),
-          onSuccess: (updatedTrack) => {
-              queryClient.invalidateQueries({ queryKey: ['tracks'] });
-               // Stop playback if file of playing track is deleted
-               if (playingTrackId === updatedTrack.id) {
-                    setPlayingTrackId(null);
-               }
-               closeConfirmDialog();
-               toast.success(`Файл для треку "${updatedTrack.title}" успішно видалено.`);
-          },
-          onError: (error: Error, deletedId) => {
-              console.error(`Failed to delete file for track ${deletedId}:`, error);
-              closeConfirmDialog();
-              toast.error(`Помилка видалення файлу: ${error.message}`);
-          },
-     });
+    const deleteFileMutation = useMutation<Track, Error, string>({
+        mutationFn: async (id: string) => {
+            const result = await deleteAudioFile(id);
+            if (result.isOk()) {
+                return result.value;
+            } else {
+                throw result.error;
+            }
+        },
+        onSuccess: (updatedTrack) => {
+            queryClient.invalidateQueries({ queryKey: ['tracks'] });
+            if (playingTrackId === updatedTrack.id) {
+                setPlayingTrackId(null);
+            }
+            closeConfirmDialog();
+            toast.success(`Файл для треку "${updatedTrack.title}" успішно видалено.`);
+        },
+        onError: (error: Error, deletedId) => {
+            console.error(`Failed to delete file for track ${deletedId}:`, error);
+            closeConfirmDialog();
+            toast.error(`Помилка видалення файлу: ${error.message}`);
+        },
+    });
 
     const openCreateModal = () => setIsCreateModalOpen(true);
     const closeCreateModal = () => {
@@ -335,18 +370,17 @@ function App() {
         }));
     };
 
-     // Artist filter handler (debounced)
-     const debouncedArtistFilter = useCallback(
-         debounce((term: string) => {
-             setQueryParams(prev => ({ ...prev, artist: term.trim() || undefined, page: 1 }));
-         }, 500),
-         []
-     );
-     const handleArtistFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-         const term = event.target.value;
-         setArtistFilterTerm(term); // Update local state immediately
-         debouncedArtistFilter(term); // Update queryParams with debounce
-     };
+    const debouncedArtistFilter = useMemo(
+        () => debounce((term: string) => {
+            setQueryParams(prev => ({ ...prev, artist: term.trim() || undefined, page: 1 }));
+        }, 500),
+        []
+    );
+    const handleArtistFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const term = event.target.value;
+        setArtistFilterTerm(term);
+        debouncedArtistFilter(term);
+    };
 
     const handlePageChange = (newPage: number) => {
         if (paginationMeta && newPage >= 1 && newPage <= paginationMeta.totalPages) {
@@ -410,13 +444,16 @@ function App() {
     const paginationMeta = tracksData?.meta;
     const currentSortValue = `${queryParams.sort}_${queryParams.order}` as SortOption['value'];
 
-     // Determine overall loading state for controls
-     const isControlsLoading = isLoadingTracks || isLoadingGenres ||
-                                createTrackMutation.isPending || updateTrackMutation.isPending ||
-                                deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending ||
-                                uploadFileMutation.isPending || deleteFileMutation.isPending;
+    const isControlsLoading = isLoadingTracks || isLoadingGenres ||
+        createTrackMutation.isPending || updateTrackMutation.isPending ||
+        deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending ||
+        uploadFileMutation.isPending || deleteFileMutation.isPending;
 
-    // --- Rendering ---
+    if (isErrorGenres) {
+        console.error("Помилка завантаження жанрів:", errorGenres);
+        return <p className="text-red-500 bg-red-100 border border-red-400 rounded p-4 mb-4">Виникла помилка при завантаженні жанрів: {errorGenres?.message || 'Невідома помилка'}</p>;
+    }
+
     return (
         <div className="container mx-auto p-4 bg-gray-900 min-h-screen text-white">
             <h1 data-testid="tracks-header" className="text-3xl font-bold mb-6">
@@ -485,19 +522,18 @@ function App() {
                     {createTrackMutation.isPending ? 'Створення...' : 'Створити трек'}
                 </button>
 
-                {/* Bulk delete button (visible when tracks are selected) */}
-                 {selectedTrackIds.size > 0 && (
-                     <button
-                         data-testid="bulk-delete-button"
-                         onClick={handleBulkDelete}
-                         disabled={deleteMultipleTracksMutation.isPending || isControlsLoading}
-                         className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                         data-loading={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
-                         aria-disabled={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
-                     >
-                         {deleteMultipleTracksMutation.isPending ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
-                     </button>
-                 )}
+                {selectedTrackIds.size > 0 && (
+                    <button
+                        data-testid="bulk-delete-button"
+                        onClick={handleBulkDelete}
+                        disabled={deleteMultipleTracksMutation.isPending || isControlsLoading}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-loading={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
+                        aria-disabled={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
+                    >
+                        {deleteMultipleTracksMutation.isPending ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
+                    </button>
+                )}
             </div>
 
             {isErrorTracks && (
@@ -563,16 +599,14 @@ function App() {
                 isLoadingGenres={isLoadingGenres}
                 isErrorGenres={isErrorGenres}
             />
-
-             {/* --- Custom Confirmation Dialog --- */}
-             <ConfirmDialog
-                 isOpen={isConfirmDialogOpen}
-                 onClose={closeConfirmDialog}
-                 onConfirm={handleConfirmDelete} // Handles the actual delete mutation based on context
-                 message={confirmDialogMessage}
-                 // Determine if any relevant mutation is pending to disable dialog buttons
-                 isConfirming={deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending || deleteFileMutation.isPending}
-             />
+            
+            <ConfirmDialog
+                isOpen={isConfirmDialogOpen}
+                onClose={closeConfirmDialog}
+                onConfirm={handleConfirmDelete}
+                message={confirmDialogMessage}
+                isConfirming={deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending || deleteFileMutation.isPending}
+            />
 
             <ToastContainer
                 position="top-right"
