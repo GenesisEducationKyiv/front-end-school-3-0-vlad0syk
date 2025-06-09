@@ -86,23 +86,23 @@ export const CreateTrackDtoSchema = z.object({
 });
 
 export const UpdateTrackDtoSchema = z.object({
-    title: z.string().min(1, 'Title cannot be empty').optional(),
-    artist: z.string().min(1, 'Artist cannot be empty').optional(),
-    album: z.string().optional(),
-    genres: z.array(GenreSchema).optional(),
-    coverImage: z.string().optional(),
-    audioFile: z.string().optional(),
+    title: z.string().min(1, 'Title cannot be empty'),
+    artist: z.string().min(1, 'Artist cannot be empty'),
+    album: z.string(),
+    genres: z.array(GenreSchema),
+    coverImage: z.string(),
+    audioFile: z.string(),
 }).partial();
 
 export const QueryParamsSchema = z.object({
-    page: z.number().int().positive().optional(),
-    limit: z.number().int().positive().optional(),
-    sort: z.enum(['title', 'artist', 'album', 'createdAt']).optional(),
-    order: z.enum(['asc', 'desc']).optional(),
-    search: z.string().optional(),
-    genre: z.string().optional(),
-    artist: z.string().optional(),
-});
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    sort: z.enum(['title', 'artist', 'album', 'createdAt']),
+    order: z.enum(['asc', 'desc']),
+    search: z.string(),
+    genre: z.string(),
+    artist: z.string(),
+}).partial();
 
 export const PaginatedMetaSchema = z.object({
     total: z.number().int().min(0),
@@ -123,6 +123,6 @@ export const BatchDeleteResponseSchema = z.object({
 
 export const ApiErrorSchema = z.object({
     error: z.string(),
-    statusCode: z.number().int().optional(),
-    details: z.array(z.string()).optional(),
-});
+    statusCode: z.number().int(),
+    details: z.array(z.string()),
+}).partial();
