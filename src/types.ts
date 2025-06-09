@@ -97,8 +97,8 @@ export const UpdateTrackDtoSchema = z.object({
 export const QueryParamsSchema = z.object({
     page: z.number().int().positive(),
     limit: z.number().int().positive(),
-    sort: z.enum(['title', 'artist', 'album', 'createdAt']),
-    order: z.enum(['asc', 'desc']),
+    sort: z.union([z.literal('title'), z.literal('artist'), z.literal('album'), z.literal('createdAt')]),
+    order: z.union([z.literal('asc'), z.literal('desc')]),
     search: z.string(),
     genre: z.string(),
     artist: z.string(),
