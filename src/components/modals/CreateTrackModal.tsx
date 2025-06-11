@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { CreateTrackDto, Genre } from '../../types';
-import { isValidUrl } from '../../utils/vaildation.ts';
+import React, { useState, useEffect } from 'react';
+import { CreateTrackDto, Genre, CreateTrackDtoSchema } from '../../types';
+import { ZodError } from 'zod';
 
 interface CreateTrackModalProps {
     isOpen: boolean;
@@ -21,16 +21,30 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
     isLoadingGenres = false,
     isErrorGenres = false
 }) => {
-    if (!isOpen) {
-        return null;
-    }
-
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
     const [album, setAlbum] = useState('');
     const [genres, setGenres] = useState<string[]>([]);
     const [coverImage, setCoverImage] = useState('');
     const [errors, setErrors] = useState<{ [key: string]: string | undefined }>({});
+
+    // Скидання форми при відкритті
+    useEffect(() => {
+        if (isOpen) {
+            resetForm();
+        }
+    }, [isOpen]);
+
+    const resetForm = () => {
+        setTitle('');
+        setArtist('');
+        setAlbum('');
+        setGenres([]);
+        setCoverImage('');
+        setErrors({});
+    };
+
+    if (!isOpen) return null;
 
     const handleAddGenre = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedGenre = e.target.value;
@@ -46,48 +60,44 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
         setErrors(prev => ({ ...prev, genres: undefined }));
     };
 
-    const validate = () => {
-        const newErrors: { [key: string]: string | undefined } = {};
-        if (!title.trim()) {
-            newErrors.title = 'Назва треку є обов\'язковою.';
+    const validate = (data: CreateTrackDto) => {
+        try {
+            CreateTrackDtoSchema.parse(data);
+            setErrors({});
+            return true;
+        } catch (error) {
+            if (error instanceof ZodError) {
+                const newErrors: { [key: string]: string | undefined } = {};
+                error.errors.forEach(err => {
+                    if (err.path.length > 0) {
+                        newErrors[err.path[0]] = err.message;
+                    }
+                });
+                setErrors(newErrors);
+                console.error("Validation errors:", newErrors);
+            }
+            return false;
         }
-        if (!artist.trim()) {
-            newErrors.artist = 'Виконавець є обов\'язковим.';
-        }
-        if (genres.length === 0) {
-            newErrors.genres = 'Потрібен хоча б один жанр.';
-        }
-
-        if (coverImage.trim() !== '' && !isValidUrl(coverImage.trim())) {
-            newErrors.coverImage = 'Будь ласка, введіть дійсний URL обкладинки (починаючи з http:// або https://).';
-        }
-
-        setErrors(newErrors);
-        return Object.values(newErrors).every(error => error === undefined);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!validate()) {
-            console.error("Validation failed");
-            return;
-        }
-
-        const newTrack: CreateTrackDto = {
+        const formData: CreateTrackDto = {
             title: title.trim(),
             artist: artist.trim(),
-            album: album.trim() || undefined,
+            album: album.trim(),
             genres,
-            coverImage: coverImage.trim() || undefined,
+            coverImage: coverImage.trim(),
         };
-        onSubmit(newTrack);
+
+        if (!validate(formData)) return;
+        const validatedData = CreateTrackDtoSchema.parse(formData);
+        onSubmit(validatedData);
+        resetForm(); // Очищення після сабміту
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget) {
-            onClose();
-        }
+        if (e.target === e.currentTarget) onClose();
     };
 
     return (
@@ -96,8 +106,8 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
             onClick={handleOverlayClick}
         >
             <div
-                 className="bg-gray-800 text-white rounded-lg shadow-xl p-6 w-full max-w-md relative overflow-y-auto max-h-[90vh]"
-                 onClick={e => e.stopPropagation()}
+                className="bg-gray-800 text-white rounded-lg shadow-xl p-6 w-full max-w-md relative overflow-y-auto max-h-[90vh]"
+                onClick={e => e.stopPropagation()}
             >
                 <h2 className="text-2xl font-bold mb-4">Створити новий трек</h2>
                 <button
@@ -108,25 +118,28 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                     &times;
                 </button>
 
-                
                 <form onSubmit={handleSubmit} data-testid="track-form">
                     <div className="mb-4">
                         <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">Назва треку</label>
                         <input
                             data-testid="input-title"
-                            type="text" id="title" value={title}
+                            type="text"
+                            id="title"
+                            value={title}
                             onChange={(e) => { setTitle(e.target.value); setErrors(prev => ({ ...prev, title: undefined })); }}
                             className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.title ? 'border-red-500' : 'border-gray-600'}`}
                             disabled={isSubmitting}
-                         />
-                          {errors.title && <p data-testid="error-title" className="text-red-500 text-sm mt-1">{errors.title}</p>}
+                        />
+                        {errors.title && <p data-testid="error-title" className="text-red-500 text-sm mt-1">{errors.title}</p>}
                     </div>
 
                     <div className="mb-4">
                         <label htmlFor="artist" className="block text-sm font-medium text-gray-400 mb-1">Виконавець</label>
                         <input
                             data-testid="input-artist"
-                            type="text" id="artist" value={artist}
+                            type="text"
+                            id="artist"
+                            value={artist}
                             onChange={(e) => { setArtist(e.target.value); setErrors(prev => ({ ...prev, artist: undefined })); }}
                             className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.artist ? 'border-red-500' : 'border-gray-600'}`}
                             disabled={isSubmitting}
@@ -138,23 +151,27 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                         <label htmlFor="album" className="block text-sm font-medium text-gray-400 mb-1">Альбом (необов'язково)</label>
                         <input
                             data-testid="input-album"
-                            type="text" id="album" value={album}
+                            type="text"
+                            id="album"
+                            value={album}
                             onChange={(e) => setAlbum(e.target.value)}
                             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                             disabled={isSubmitting}
-                         />
+                        />
                     </div>
 
                     <div className="mb-6">
                         <label htmlFor="coverImage" className="block text-sm font-medium text-gray-400 mb-1">URL обкладинки (необов'язково)</label>
                         <input
                             data-testid="input-cover-image"
-                            type="text" id="coverImage" value={coverImage}
+                            type="text"
+                            id="coverImage"
+                            value={coverImage}
                             onChange={(e) => { setCoverImage(e.target.value); setErrors(prev => ({ ...prev, coverImage: undefined })); }}
                             className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.coverImage ? 'border-red-500' : 'border-gray-600'}`}
                             disabled={isSubmitting}
                         />
-                          {errors.coverImage && <p data-testid="error-cover-image" className="text-red-500 text-sm mt-1">{errors.coverImage}</p>}
+                        {errors.coverImage && <p data-testid="error-cover-image" className="text-red-500 text-sm mt-1">{errors.coverImage}</p>}
                     </div>
 
                     <div className="mb-6">
@@ -182,7 +199,6 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                             <p data-testid="no-genres-available" className="text-gray-400 mb-2">Доступні жанри відсутні.</p>
                         )}
 
-
                         <div className="flex flex-wrap gap-2 mt-2" data-testid="selected-genres">
                             {genres.map(genre => (
                                 <span
@@ -190,24 +206,22 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                                     data-testid={`genre-tag-${genre.replace(/\s+/g, '-').toLowerCase()}`}
                                     className="flex items-center bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full"
                                 >
-                                       {genre}
-                                       <button
-                                            type="button"
-                                            onClick={() => handleRemoveGenre(genre)}
-                                            disabled={isSubmitting}
-                                            className="ml-2 text-white hover:text-gray-200 focus:outline-none disabled:opacity-50"
-                                            aria-label={`Remove genre ${genre}`}
-                                        >
-                                            &times;
-                                        </button>
-                                   </span>
+                                    {genre}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveGenre(genre)}
+                                        disabled={isSubmitting}
+                                        className="ml-2 text-white hover:text-gray-200 focus:outline-none disabled:opacity-50"
+                                        aria-label={`Remove genre ${genre}`}
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
                             ))}
-                         </div>
+                        </div>
                         {errors.genres && <p data-testid="error-genre" className="text-red-500 text-sm mt-1">{errors.genres}</p>}
                     </div>
 
-
-                    
                     <div className="flex justify-end">
                         <button
                             data-testid="submit-button"
@@ -217,8 +231,8 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                         >
                             {isSubmitting ? 'Створення...' : 'Створити'}
                         </button>
-                     </div>
-                 </form>
+                    </div>
+                </form>
             </div>
         </div>
     );

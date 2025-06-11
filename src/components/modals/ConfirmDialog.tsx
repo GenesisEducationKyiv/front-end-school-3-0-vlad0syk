@@ -23,9 +23,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         return null;
     }
 
-     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === e.currentTarget && !isConfirming) {}
-     };
+    const handleOverlayClick = (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget && !isConfirming) {
+            // onClose();
+        }
+    };
 
     const handleCancelClick = () => {
         if (!isConfirming) {

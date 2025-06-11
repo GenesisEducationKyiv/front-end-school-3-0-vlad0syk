@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Track, UpdateTrackDto, Genre } from '../../types';
-import { isValidUrl } from '../../utils/vaildation.ts';
+import { Track, UpdateTrackDto, Genre, UpdateTrackDtoSchema } from '../../types';
+import { ZodError } from 'zod';
 
 interface EditTrackModalProps {
     isOpen: boolean;
@@ -23,19 +23,15 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
     isLoadingGenres = false,
     isErrorGenres = false
 }) => {
-    if (!isOpen || !trackToEdit) {
-        return null;
-    }
-
-    const [title, setTitle] = useState(trackToEdit.title);
-    const [artist, setArtist] = useState(trackToEdit.artist);
-    const [album, setAlbum] = useState(trackToEdit.album || '');
-    const [genres, setGenres] = useState<string[]>(trackToEdit.genres || []);
-    const [coverImage, setCoverImage] = useState(trackToEdit.coverImage || '');
-     const [errors, setErrors] = useState<{ [key: string]: string | undefined }>({});
+    const [title, setTitle] = useState('');
+    const [artist, setArtist] = useState('');
+    const [album, setAlbum] = useState('');
+    const [genres, setGenres] = useState<string[]>([]);
+    const [coverImage, setCoverImage] = useState('');
+    const [errors, setErrors] = useState<{ [key: string]: string | undefined }>({});
 
     useEffect(() => {
-        if (trackToEdit) {
+        if (isOpen && trackToEdit) {
             setTitle(trackToEdit.title);
             setArtist(trackToEdit.artist);
             setAlbum(trackToEdit.album || '');
@@ -47,6 +43,10 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
             setErrors({});
         }
     }, [trackToEdit, isOpen]);
+
+    if (!isOpen || !trackToEdit) {
+        return null;
+    }
 
     const handleAddGenre = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedGenre = e.target.value;
@@ -62,47 +62,69 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
         setErrors(prev => ({ ...prev, genres: undefined }));
     };
 
-    const validate = () => {
-        const newErrors: { [key: string]: string | undefined } = {};
-        if (!title.trim()) {
-            newErrors.title = 'Назва треку є обов\'язковою.';
+    const validate = (data: Partial<Omit<Track, 'id'>>) => {
+        try {
+            UpdateTrackDtoSchema.parse(data);
+            setErrors({});
+            return true;
+        } catch (error) {
+            if (error instanceof ZodError) {
+                const newErrors: { [key: string]: string | undefined } = {};
+                error.errors.forEach(err => {
+                    if (err.path.length > 0) {
+                        newErrors[err.path[0]] = err.message;
+                    }
+                });
+                setErrors(newErrors);
+                console.error("Validation errors:", newErrors);
+            }
+            return false;
         }
-        if (!artist.trim()) {
-            newErrors.artist = 'Виконавець є обов\'язковим.';
-        }
-        if (genres.length === 0) {
-            newErrors.genres = 'Потрібен хоча б один жанр.';
-        }
-
-        if (coverImage.trim() !== '' && !isValidUrl(coverImage.trim())) {
-            newErrors.coverImage = 'Будь ласка, введіть дійсний URL обкладинки (починаючи з http:// або https://).';
-        }
-        setErrors(newErrors);
-        return Object.values(newErrors).every(error => error === undefined);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validate()) {
+        if (!trackToEdit) return;
+
+        const currentFormData = {
+            title: title.trim(),
+            artist: artist.trim(),
+            album: album.trim(),
+            genres: genres,
+            coverImage: coverImage.trim(),
+        };
+
+        if (!validate(currentFormData)) {
             console.error("Validation failed");
             return;
         }
 
-        if (!trackToEdit) return;
-
         const updatedData: UpdateTrackDto = {};
-        if (title.trim() !== trackToEdit.title) updatedData.title = title.trim();
-        if (artist.trim() !== trackToEdit.artist) updatedData.artist = artist.trim();
 
-        if ((album.trim() === '' && trackToEdit.album !== undefined && trackToEdit.album !== '') || (album.trim() !== '' && album.trim() !== trackToEdit.album?.trim())) {
-            updatedData.album = album.trim() === '' ? undefined : album.trim();
+        if (currentFormData.title !== trackToEdit.title) {
+            updatedData.title = currentFormData.title;
         }
-        if (JSON.stringify(genres.sort()) !== JSON.stringify((trackToEdit.genres || []).sort())) {
-            updatedData.genres = genres;
+        if (currentFormData.artist !== trackToEdit.artist) {
+            updatedData.artist = currentFormData.artist;
         }
-        if ((coverImage.trim() === '' && trackToEdit.coverImage !== undefined && trackToEdit.coverImage !== '') || (coverImage.trim() !== '' && coverImage.trim() !== trackToEdit.coverImage?.trim())) {
-            updatedData.coverImage = coverImage.trim() === '' ? undefined : coverImage.trim();
+
+        const currentAlbum = currentFormData.album === '' ? undefined : currentFormData.album;
+        const originalAlbum = trackToEdit.album === '' ? undefined : trackToEdit.album;
+        if (currentAlbum !== originalAlbum) {
+            updatedData.album = currentAlbum;
+        }
+
+        const sortedCurrentGenres = [...currentFormData.genres].sort();
+        const sortedOriginalGenres = [...(trackToEdit.genres || [])].sort();
+        if (JSON.stringify(sortedCurrentGenres) !== JSON.stringify(sortedOriginalGenres)) {
+            updatedData.genres = currentFormData.genres;
+        }
+
+        const currentCoverImage = currentFormData.coverImage === '' ? undefined : currentFormData.coverImage;
+        const originalCoverImage = trackToEdit.coverImage === '' ? undefined : trackToEdit.coverImage;
+        if (currentCoverImage !== originalCoverImage) {
+            updatedData.coverImage = currentCoverImage;
         }
 
         if (Object.keys(updatedData).length > 0) {
@@ -112,7 +134,6 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
             console.log("No changes to save.");
             onClose();
         }
-
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -122,23 +143,12 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
-            onClick={handleOverlayClick}
-        >
-            <div
-                className="bg-gray-800 text-white rounded-lg shadow-xl p-6 w-full max-w-md relative overflow-y-auto max-h-[90vh]"
-                onClick={e => e.stopPropagation()}
-            >
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" onClick={handleOverlayClick}>
+            <div className="bg-gray-800 text-white rounded-lg shadow-xl p-6 w-full max-w-md relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <h2 className="text-2xl font-bold mb-4">Редагувати трек</h2>
-                <button
-                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-200 text-2xl z-10"
-                    onClick={onClose}
-                    disabled={isSaving}
-                >
+                <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-200 text-2xl z-10" onClick={onClose} disabled={isSaving}>
                     &times;
                 </button>
-
                 <form onSubmit={handleSubmit} data-testid="track-form">
                     <div className="mb-4">
                         <label htmlFor="edit-title" className="block text-sm font-medium text-gray-400 mb-1">Назва треку</label>
@@ -184,7 +194,7 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
                             className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.coverImage ? 'border-red-500' : 'border-gray-600'}`}
                             disabled={isSaving}
                         />
-                          {errors.coverImage && <p data-testid="error-cover-image" className="text-red-500 text-sm mt-1">{errors.coverImage}</p>}
+                        {errors.coverImage && <p data-testid="error-cover-image" className="text-red-500 text-sm mt-1">{errors.coverImage}</p>}
                     </div>
 
                     <div className="mb-6">
@@ -209,18 +219,18 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
                         )}
 
                         {availableGenres && Array.isArray(availableGenres) && availableGenres.length === 0 && !isLoadingGenres && !isErrorGenres && (
-                            <p data-testid="no-genres-available" className="text-gray-400 mb-2">Доступні жанри відсутні.</p>
+                             <p data-testid="no-genres-available" className="text-gray-400 mb-2">Доступні жанри відсутні.</p>
                         )}
 
                         <div className="flex flex-wrap gap-2 mt-2" data-testid="selected-genres">
                             {genres.map(genre => (
-                                    <span
-                                       key={genre}
-                                       data-testid={`genre-tag-${genre.replace(/\s+/g, '-').toLowerCase()}`}
-                                       className="flex items-center bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full"
+                                 <span
+                                        key={genre}
+                                        data-testid={`genre-tag-${genre.replace(/\s+/g, '-').toLowerCase()}`}
+                                        className="flex items-center bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full"
                                     >
-                                       {genre}
-                                       <button
+                                        {genre}
+                                        <button
                                             type="button"
                                             onClick={() => handleRemoveGenre(genre)}
                                             disabled={isSaving}
@@ -251,9 +261,9 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? 'Збереження...' : 'Зберегти'}
-                         </button>
-                     </div>
-                 </form>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Track } from '../../types';
-
 import { toast } from 'react-toastify';
+import { z } from 'zod';
+import { Result, ok, err } from 'neverthrow';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -16,6 +17,18 @@ interface TrackItemProps {
     onDeleteFileWithConfirmation: (id: Track['id']) => void;
     playingTrackId: Track['id'] | null;
     onPlayToggle: (id: Track['id']) => void;
+}
+
+const FileSchema = z.object({
+    type: z.string().refine(
+        (type) => ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3', 'audio/x-wav'].includes(type),
+        'Invalid file type. Only MP3, WAV, OGG allowed.'
+    ),
+    size: z.number().max(10 * 1024 * 1024, 'File size exceeds 10MB limit.'),
+});
+
+function isHTMLAudioElement(element: EventTarget | null): element is HTMLAudioElement {
+    return element instanceof HTMLAudioElement;
 }
 
 const TrackItem: React.FC<TrackItemProps> = ({
@@ -42,31 +55,34 @@ const TrackItem: React.FC<TrackItemProps> = ({
         const audio = audioRef.current;
         if (audio) {
             if (isPlaying) {
-                audio.play().catch(error => console.error(`Playback error for track ${track.id}:`, error));
+                audio.play().catch(error => {
+                    console.error(`Playback error for track ${track.id}:`, error);
+                    toast.error(`Failed to play track ${track.title}.`);
+                });
             } else {
                 audio.pause();
             }
         }
-    }, [isPlaying]);
+    }, [isPlaying, track.id, track.title]);
 
-     useEffect(() => {
-          const audio = audioRef.current;
-          if (audio) {
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (audio) {
             const handleLoadedMetadata = () => {
                 setAudioProgress(0);
             };
-            
             audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-              
+
             setAudioProgress(0);
 
             return () => {
                 audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
             };
-          }
-     }, [track.id, track.audioFile]);
+        }
+    }, [track.id, track.audioFile]);
 
     const handleSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.stopPropagation();
         onSelect(track.id);
     };
 
@@ -80,63 +96,78 @@ const TrackItem: React.FC<TrackItemProps> = ({
         onDelete(track.id);
     };
 
-     const handleUploadButtonClick = (e: React.MouseEvent) => {
+    const handleUploadButtonClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         fileInputRef.current?.click();
-     };
+    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3', 'audio/x-wav'];
-            const maxSize = 10 * 1024 * 1024;
 
-            if (!allowedTypes.includes(file.type)) {
-                toast.error('Invalid file type. Only MP3, WAV, OGG allowed.');
-                e.target.value = '';
-                return;
-            }
-             if (file.size > maxSize) {
-                toast.error('File size exceeds 10MB limit.');
-                e.target.value = '';
-                return;
-             }
+        if (!file) {
+            toast.error('No file selected.');
+            return;
+        }
 
-            setUploading(true);
-            try {
-                await onUploadFile(track.id, file);
-            } catch (error) {
-                console.error("Upload failed:", error);
-            } finally {
-                setUploading(false);
-                e.target.value = '';
-            }
+        const parsedFile = FileSchema.safeParse(file);
+
+        let validationResult: Result<File, string>;
+
+        if (parsedFile.success) {
+            validationResult = ok(file);
+        } else {
+            const errorMessage = parsedFile.error.errors.length > 0
+                ? parsedFile.error.errors[0].message
+                : 'Unknown file validation error.';
+            validationResult = err(errorMessage);
+        }
+
+        if (validationResult.isErr()) {
+            toast.error(validationResult.error);
+            e.target.value = '';
+            return;
+        }
+
+        const validFile = validationResult.value;
+
+        setUploading(true);
+        try {
+            await onUploadFile(track.id, validFile);
+        } catch (error) {
+            console.error("Upload failed:", error);
+            toast.error('File upload failed.');
+        } finally {
+            setUploading(false);
+            e.target.value = '';
         }
     };
 
     const handleDeleteFileClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onDeleteFileWithConfirmation(track.id);
-     };
+    };
 
     const handlePlayPauseClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onPlayToggle(track.id);
     };
 
-     const handleTimeUpdate = () => {
-        if (audioRef.current && !isNaN(audioRef.current.duration) && audioRef.current.duration > 0) {
-            const progress = (audioRef.current.currentTime / audioRef.current.duration) * 100;
-            setAudioProgress(progress);
-        } else {
-            setAudioProgress(0);
+    const handleTimeUpdate = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+        if (isHTMLAudioElement(e.currentTarget)) {
+            const audio = e.currentTarget;
+            if (!isNaN(audio.duration) && audio.duration > 0) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                setAudioProgress(progress);
+            } else {
+                setAudioProgress(0);
+            }
         }
-     };
+    };
 
-      const handleAudioEnded = () => {
-           onPlayToggle(track.id);
-           setAudioProgress(0);
-      };
+    const handleAudioEnded = () => {
+        onPlayToggle(track.id);
+        setAudioProgress(0);
+    };
 
     const isFileOperationInProgress = uploading;
 
@@ -149,7 +180,7 @@ const TrackItem: React.FC<TrackItemProps> = ({
                 border-2
                 ${isSelected ? 'border-blue-500' : 'border-transparent'}
                 hover:bg-gray-700 transition-colors duration-150
-                ${isFileOperationInProgress ? 'opacity-60 pointer-events-none' : 'cursor-pointer'} // Dim and disable interactions during file upload
+                ${isFileOperationInProgress ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}
                 flex flex-col items-center
             `}
             onClick={() => onSelect(track.id)}
@@ -185,8 +216,8 @@ const TrackItem: React.FC<TrackItemProps> = ({
                 </button>
             </div>
 
-             <div className="w-full mb-2">
-                 {track.coverImage ? (
+            <div className="w-full mb-2">
+                {track.coverImage ? (
                     <img
                         src={track.coverImage}
                         alt={`${track.title} cover`}
@@ -196,12 +227,12 @@ const TrackItem: React.FC<TrackItemProps> = ({
                             console.error(`Failed to load image for track ${track.id}: ${track.coverImage}`);
                         }}
                     />
-                 ) : (
+                ) : (
                     <div className="w-full aspect-square bg-gray-700 flex items-center justify-center rounded">
                         <img src="/music.svg" alt="Music icon" className="h-10 w-10 text-gray-400" />
                     </div>
-                 )}
-             </div>
+                )}
+            </div>
 
             <h3
                 data-testid={`track-item-${track.id}-title`}
@@ -220,14 +251,14 @@ const TrackItem: React.FC<TrackItemProps> = ({
             </p>
 
             <div className="mt-3 w-full flex flex-col items-center gap-2">
-                 {track.audioFile && (
+                {track.audioFile && (
                     <audio
                         ref={audioRef}
                         src={`${API_BASE_URL}/api/files/${track.audioFile}`}
                         onTimeUpdate={handleTimeUpdate}
                         onEnded={handleAudioEnded}
                     ></audio>
-                 )}
+                )}
 
                 {track.audioFile ? (
                     <div data-testid={`audio-player-${track.id}`} className="w-full flex flex-col items-center gap-2">
@@ -259,7 +290,7 @@ const TrackItem: React.FC<TrackItemProps> = ({
                             disabled={isFileOperationInProgress}
                             aria-label="Remove audio file"
                         >
-                             Видалити файл
+                            Видалити файл
                         </button>
                     </div>
                 ) : (
@@ -271,6 +302,8 @@ const TrackItem: React.FC<TrackItemProps> = ({
                             onChange={handleFileUpload}
                             accept="audio/*"
                             disabled={isFileOperationInProgress}
+                            data-loading={uploading ? 'true' : 'false'}
+                            aria-disabled={uploading ? 'true' : 'false'}
                         />
                         <button
                             data-testid={`upload-track-${track.id}`}
@@ -280,16 +313,16 @@ const TrackItem: React.FC<TrackItemProps> = ({
                             data-loading={uploading ? 'true' : 'false'}
                             aria-disabled={uploading ? 'true' : 'false'}
                         >
-                             {uploading ? (
-                                 'Завантаження...'
-                             ) : (
-                                 <>
+                            {uploading ? (
+                                'Завантаження...'
+                            ) : (
+                                <>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                                     </svg>
                                     Завантажити файл
-                                 </>
-                             )}
+                                </>
+                            )}
                         </button>
                     </div>
                 )}

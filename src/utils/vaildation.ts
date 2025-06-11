@@ -1,10 +1,12 @@
-export function isValidUrl(string: string): boolean {
-    try {
-        new URL(string);
-        const url = new URL(string);
-        return url.protocol === 'http:' || url.protocol === 'https:';
+export function isValidUrl(value: unknown): value is string {
+    if (typeof value !== 'string') {
+        return false;
     }
-    catch (e) {
+
+    try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
         return false;
     }
 }
