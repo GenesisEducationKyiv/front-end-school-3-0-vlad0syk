@@ -13,9 +13,13 @@ export type QueryParams = z.infer<typeof QueryParamsSchema>;
 export type PaginatedResponse<T> = z.infer<typeof PaginatedResponseSchema>;
 
 export interface SortOption {
-    value: `${Exclude<QueryParams['sort'], undefined>}_${Exclude<QueryParams['order'], undefined>}`;
+    value: `${NonNullable<QueryParams['sort']>}_${NonNullable<QueryParams['order']>}`;
     label: string;
 }
+
+export type SortField = NonNullable<QueryParams['sort']>;
+
+export type SortOrder = NonNullable<QueryParams['order']>;
 
 export type BatchDeleteResponse = z.infer<typeof BatchDeleteResponseSchema>;
 
@@ -56,9 +60,9 @@ export const QueryParamsSchema = z.object({
     limit: z.number().int().positive(),
     sort: z.union([z.literal('title'), z.literal('artist'), z.literal('album'), z.literal('createdAt')]),
     order: z.union([z.literal('asc'), z.literal('desc')]),
-    search: z.string().optional(), // Зробіть search необов'язковим відповідно до інтерфейсу
-    genre: z.string().optional(), // Зробіть genre необов'язковим відповідно до інтерфейсу
-    artist: z.string().optional(), // Зробіть artist необов'язковим відповідно до інтерфейсу
+    search: z.string().optional(),
+    genre: z.string().optional(),
+    artist: z.string().optional(),
 }).partial();
 
 export const PaginatedMetaSchema = z.object({

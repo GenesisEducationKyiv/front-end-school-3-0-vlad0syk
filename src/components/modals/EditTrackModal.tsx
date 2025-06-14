@@ -109,7 +109,7 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
             updatedData.artist = currentFormData.artist;
         }
 
-        const currentAlbum = currentFormData.album === '' ? undefined : currentFormData.album;
+        const currentAlbum = currentFormData.album || undefined;
         const originalAlbum = trackToEdit.album === '' ? undefined : trackToEdit.album;
         if (currentAlbum !== originalAlbum) {
             updatedData.album = currentAlbum;
