@@ -31,7 +31,8 @@ import {
     QueryParams
 } from './types';
 import { debounce } from 'lodash';
-import { useFiltersState, usePagination } from './hooks/useFiltersState';
+import { useFiltersState } from './hooks/useFiltersState';
+import { usePagination } from './hooks/usePagination';
 
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
