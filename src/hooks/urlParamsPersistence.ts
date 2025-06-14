@@ -8,6 +8,12 @@ type OrderOption = 'asc' | 'desc';
 const sortOptions: readonly SortOption[] = ['title', 'artist', 'album', 'createdAt'] as const;
 const orderOptions: readonly OrderOption[] = ['asc', 'desc'] as const;
 
+const MAX_PAGE = 100;
+const MAX_LIMIT = 100;
+const MIN_LIMIT = 1;
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+
 const isSortOption = (value: string): value is SortOption => 
   sortOptions.includes(value as SortOption);
 
@@ -38,17 +44,17 @@ export function useValidatedSearchParams(): {
     Belt.O.filter(isOrderOption)
   ) as Belt.O.Option<OrderOption>;
 
-  const getPositiveInteger = (key: string): Belt.O.Option<number> => Belt.pipe(
+  const getValidatedInteger = (key: string, min: number, max: number, defaultValue: number): number => Belt.pipe(
     getCleanString(key),
     Belt.O.map((v) => parseInt(v, 10)),
-    Belt.O.filter((n) => !Number.isNaN(n) && n > 0)
+    Belt.O.filter((n) => !Number.isNaN(n) && n >= min && n <= max),
+    Belt.O.getWithDefault(defaultValue)
   );
 
   const rawParams: Partial<QueryParams> = {};
 
-  rawParams.page = Belt.O.getWithDefault(getPositiveInteger('page'), 1);
-
-  rawParams.limit = Belt.O.getWithDefault(getPositiveInteger('limit'), 10);
+  rawParams.page = getValidatedInteger('page', 1, MAX_PAGE, DEFAULT_PAGE);
+  rawParams.limit = getValidatedInteger('limit', MIN_LIMIT, MAX_LIMIT, DEFAULT_LIMIT);
 
   Belt.pipe(
     getValidSort('sort'),
@@ -77,7 +83,7 @@ export function useValidatedSearchParams(): {
 
   const validationResult = QueryParamsSchema.safeParse(rawParams);
   const isValid = validationResult.success;
-  const params = isValid ? validationResult.data : { page: 1, limit: 10 };
+  const params = isValid ? validationResult.data : { page: DEFAULT_PAGE, limit: DEFAULT_LIMIT };
 
   const cleanUrl = new URLSearchParams();
   
@@ -120,15 +126,16 @@ export function parseSearchParams(searchString: string): {
     Belt.O.filter((s) => s.length > 0)
   );
 
-  const getPositiveInteger = (key: string) => Belt.pipe(
+  const getValidatedInteger = (key: string, min: number, max: number, defaultValue: number): number => Belt.pipe(
     getCleanString(key),
     Belt.O.map((v) => parseInt(v, 10)),
-    Belt.O.filter((n) => !Number.isNaN(n) && n > 0)
+    Belt.O.filter((n) => !Number.isNaN(n) && n >= min && n <= max),
+    Belt.O.getWithDefault(defaultValue)
   );
 
   const rawParams: Partial<QueryParams> = {
-    page: Belt.O.getWithDefault(getPositiveInteger('page'), 1),
-    limit: Belt.O.getWithDefault(getPositiveInteger('limit'), 10)
+    page: getValidatedInteger('page', 1, MAX_PAGE, DEFAULT_PAGE),
+    limit: getValidatedInteger('limit', MIN_LIMIT, MAX_LIMIT, DEFAULT_LIMIT)
   };
 
   Belt.pipe(getCleanString('sort'), Belt.O.tap((sort) => {
@@ -150,7 +157,7 @@ export function parseSearchParams(searchString: string): {
   const validationResult = QueryParamsSchema.safeParse(rawParams);
   
   return {
-    params: validationResult.success ? validationResult.data : { page: 1, limit: 10 },
+    params: validationResult.success ? validationResult.data : { page: DEFAULT_PAGE, limit: DEFAULT_LIMIT },
     isValid: validationResult.success
   };
 }
@@ -160,5 +167,13 @@ export function mergeSearchParams(
   newParams: Partial<QueryParams>
 ): URLSearchParams {
   const merged = { ...currentParams, ...newParams };
+
+  if (merged.page !== undefined) {
+    merged.page = Math.min(Math.max(merged.page, 1), MAX_PAGE);
+  }
+  if (merged.limit !== undefined) {
+    merged.limit = Math.min(Math.max(merged.limit, MIN_LIMIT), MAX_LIMIT);
+  }
+  
   return buildSearchParams(merged);
 }
