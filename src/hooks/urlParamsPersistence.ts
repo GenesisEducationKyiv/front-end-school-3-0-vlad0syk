@@ -1,20 +1,7 @@
 import * as Belt from '@mobily/ts-belt';
 import { QueryParams, QueryParamsSchema } from '../types';
 import { OrderOption, orderOptions, sortOptions, SortOption, MAX_PAGE, MAX_LIMIT, MIN_LIMIT, DEFAULT_LIMIT, DEFAULT_PAGE } from './useValidatedSearchParams';
-
-export function buildSearchParams(params: Partial<QueryParams>): URLSearchParams {
-  const searchParams = new URLSearchParams();
-  
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      if (typeof value === 'string' || (typeof value === 'number' && !Number.isNaN(value))) {
-        searchParams.append(key, String(value));
-      }
-    }
-  });
-  
-  return searchParams;
-}
+import { buildSearchParams } from '../utils/buildSearchParams';
 
 export function parseSearchParams(searchString: string): {
   params: QueryParams;
