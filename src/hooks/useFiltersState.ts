@@ -1,24 +1,53 @@
 import { useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { pipe } from '@mobily/ts-belt';
 import { QueryParams } from '../types';
-import { 
-  useValidatedSearchParams, 
-  mergeSearchParams 
-} from './urlParamsPersistence';
 
 export function useFiltersState() {
-  const navigate = useNavigate();
-  const { params, paramsUrl, isValid } = useValidatedSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const params = useMemo(() => {
+    const urlParams: Partial<QueryParams> = {};
+    
+    const page = searchParams.get('page');
+    if (page) urlParams.page = parseInt(page, 10);
+    
+    const limit = searchParams.get('limit');
+    if (limit) urlParams.limit = parseInt(limit, 10);
+    
+    const sort = searchParams.get('sort');
+    if (sort) urlParams.sort = sort as QueryParams['sort'];
+    
+    const order = searchParams.get('order');
+    if (order) urlParams.order = order as QueryParams['order'];
+    
+    const search = searchParams.get('search');
+    if (search) urlParams.search = search;
+    
+    const genre = searchParams.get('genre');
+    if (genre) urlParams.genre = genre;
+    
+    const artist = searchParams.get('artist');
+    if (artist) urlParams.artist = artist;
+    
+    return urlParams;
+  }, [searchParams]);
 
   const updateUrl = useCallback((newParams: Partial<QueryParams>) => {
-    const updatedParams = mergeSearchParams(params, newParams);
-    const newSearch = updatedParams.toString();
-    
-    if (newSearch !== paramsUrl.toString()) {
-      navigate(`?${newSearch}`, { replace: true });
-    }
-  }, [navigate, params, paramsUrl]);
+    setSearchParams(prev => {
+      const updated = new URLSearchParams(prev);
+      
+      Object.entries(newParams).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') {
+          updated.delete(key);
+        } else {
+          updated.set(key, String(value));
+        }
+      });
+      
+      return updated;
+    });
+  }, [setSearchParams]);
 
   const setPage = useCallback((page: number) => {
     updateUrl({ page });
@@ -91,8 +120,7 @@ export function useFiltersState() {
 
   return {
     params: apiParams,
-    paramsUrl,
-    isValid,
+    searchParams,
     
     setPage,
     setLimit,
