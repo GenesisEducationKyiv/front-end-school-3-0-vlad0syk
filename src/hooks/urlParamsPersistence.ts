@@ -8,6 +8,12 @@ type OrderOption = 'asc' | 'desc';
 const sortOptions: readonly SortOption[] = ['title', 'artist', 'album', 'createdAt'] as const;
 const orderOptions: readonly OrderOption[] = ['asc', 'desc'] as const;
 
+const isSortOption = (value: string): value is SortOption => 
+  sortOptions.includes(value as SortOption);
+
+const isOrderOption = (value: string): value is OrderOption =>
+  orderOptions.includes(value as OrderOption);
+
 export function useValidatedSearchParams(): {
   params: QueryParams;
   paramsUrl: URLSearchParams;
@@ -24,15 +30,13 @@ export function useValidatedSearchParams(): {
 
   const getValidSort = (key: string): Belt.O.Option<SortOption> => Belt.pipe(
     getCleanString(key),
-    Belt.O.filter((v) => sortOptions.includes(v as SortOption)),
-    Belt.O.map((v) => v as SortOption)
-  );
+    Belt.O.filter(isSortOption),
+  ) as Belt.O.Option<SortOption>;
 
   const getValidOrder = (key: string): Belt.O.Option<OrderOption> => Belt.pipe(
     getCleanString(key),
-    Belt.O.filter((v) => orderOptions.includes(v as OrderOption)),
-    Belt.O.map((v) => v as OrderOption)
-  );
+    Belt.O.filter(isOrderOption)
+  ) as Belt.O.Option<OrderOption>;
 
   const getPositiveInteger = (key: string): Belt.O.Option<number> => Belt.pipe(
     getCleanString(key),
