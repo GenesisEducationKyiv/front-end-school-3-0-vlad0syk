@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateTrackDto, Genre, CreateTrackDtoSchema } from '../../types';
-import { ZodError } from 'zod';
 
 interface CreateTrackModalProps {
     isOpen: boolean;
@@ -21,79 +22,47 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
     isLoadingGenres = false,
     isErrorGenres = false
 }) => {
-    const [title, setTitle] = useState('');
-    const [artist, setArtist] = useState('');
-    const [album, setAlbum] = useState('');
-    const [genres, setGenres] = useState<string[]>([]);
-    const [coverImage, setCoverImage] = useState('');
-    const [errors, setErrors] = useState<{ [key: string]: string | undefined }>({});
+    const {
+        control,
+        handleSubmit,
+        reset,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<CreateTrackDto>({
+        resolver: zodResolver(CreateTrackDtoSchema),
+        defaultValues: {
+            title: '',
+            artist: '',
+            album: '',
+            genres: [],
+            coverImage: ''
+        }
+    });
 
-    // Скидання форми при відкритті
+    const genres = watch('genres');
+
     useEffect(() => {
         if (isOpen) {
-            resetForm();
+            reset();
         }
-    }, [isOpen]);
-
-    const resetForm = () => {
-        setTitle('');
-        setArtist('');
-        setAlbum('');
-        setGenres([]);
-        setCoverImage('');
-        setErrors({});
-    };
+    }, [isOpen, reset]);
 
     if (!isOpen) return null;
 
-    const handleAddGenre = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedGenre = e.target.value;
+    const handleAddGenre = (selectedGenre: string) => {
         if (selectedGenre && !genres.includes(selectedGenre)) {
-            setGenres([...genres, selectedGenre]);
-            setErrors(prev => ({ ...prev, genres: undefined }));
+            setValue('genres', [...genres, selectedGenre]);
         }
-        e.target.value = '';
     };
 
     const handleRemoveGenre = (genreToRemove: string) => {
-        setGenres(genres.filter(genre => genre !== genreToRemove));
-        setErrors(prev => ({ ...prev, genres: undefined }));
+        setValue('genres', genres.filter(genre => genre !== genreToRemove));
     };
 
-    const validate = (data: CreateTrackDto) => {
-        try {
-            CreateTrackDtoSchema.parse(data);
-            setErrors({});
-            return true;
-        } catch (error) {
-            if (error instanceof ZodError) {
-                const newErrors: { [key: string]: string | undefined } = {};
-                error.errors.forEach(err => {
-                    if (err.path.length > 0) {
-                        newErrors[err.path[0]] = err.message;
-                    }
-                });
-                setErrors(newErrors);
-                console.error("Validation errors:", newErrors);
-            }
-            return false;
-        }
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const formData: CreateTrackDto = {
-            title: title.trim(),
-            artist: artist.trim(),
-            album: album.trim(),
-            genres,
-            coverImage: coverImage.trim(),
-        };
-
-        if (!validate(formData)) return;
-        const validatedData = CreateTrackDtoSchema.parse(formData);
-        onSubmit(validatedData);
-        resetForm(); // Очищення після сабміту
+    const onSubmitForm = (data: CreateTrackDto) => {
+        onSubmit(data);
+        reset();
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -118,72 +87,131 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                     &times;
                 </button>
 
-                <form onSubmit={handleSubmit} data-testid="track-form">
+                <form onSubmit={handleSubmit(onSubmitForm)} data-testid="track-form">
                     <div className="mb-4">
-                        <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">Назва треку</label>
-                        <input
-                            data-testid="input-title"
-                            type="text"
-                            id="title"
-                            value={title}
-                            onChange={(e) => { setTitle(e.target.value); setErrors(prev => ({ ...prev, title: undefined })); }}
-                            className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.title ? 'border-red-500' : 'border-gray-600'}`}
-                            disabled={isSubmitting}
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">
+                            Назва треку
+                        </label>
+                        <Controller
+                            name="title"
+                            control={control}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    data-testid="input-title"
+                                    type="text"
+                                    id="title"
+                                    className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        errors.title ? 'border-red-500' : 'border-gray-600'
+                                    }`}
+                                    disabled={isSubmitting}
+                                />
+                            )}
                         />
-                        {errors.title && <p data-testid="error-title" className="text-red-500 text-sm mt-1">{errors.title}</p>}
+                        {errors.title && (
+                            <p data-testid="error-title" className="text-red-500 text-sm mt-1">
+                                {errors.title.message}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="artist" className="block text-sm font-medium text-gray-400 mb-1">Виконавець</label>
-                        <input
-                            data-testid="input-artist"
-                            type="text"
-                            id="artist"
-                            value={artist}
-                            onChange={(e) => { setArtist(e.target.value); setErrors(prev => ({ ...prev, artist: undefined })); }}
-                            className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.artist ? 'border-red-500' : 'border-gray-600'}`}
-                            disabled={isSubmitting}
+                        <label htmlFor="artist" className="block text-sm font-medium text-gray-400 mb-1">
+                            Виконавець
+                        </label>
+                        <Controller
+                            name="artist"
+                            control={control}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    data-testid="input-artist"
+                                    type="text"
+                                    id="artist"
+                                    className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        errors.artist ? 'border-red-500' : 'border-gray-600'
+                                    }`}
+                                    disabled={isSubmitting}
+                                />
+                            )}
                         />
-                        {errors.artist && <p data-testid="error-artist" className="text-red-500 text-sm mt-1">{errors.artist}</p>}
+                        {errors.artist && (
+                            <p data-testid="error-artist" className="text-red-500 text-sm mt-1">
+                                {errors.artist.message}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mb-4">
-                        <label htmlFor="album" className="block text-sm font-medium text-gray-400 mb-1">Альбом (необов'язково)</label>
-                        <input
-                            data-testid="input-album"
-                            type="text"
-                            id="album"
-                            value={album}
-                            onChange={(e) => setAlbum(e.target.value)}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                            disabled={isSubmitting}
+                        <label htmlFor="album" className="block text-sm font-medium text-gray-400 mb-1">
+                            Альбом (необов'язково)
+                        </label>
+                        <Controller
+                            name="album"
+                            control={control}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    data-testid="input-album"
+                                    type="text"
+                                    id="album"
+                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                    disabled={isSubmitting}
+                                />
+                            )}
                         />
                     </div>
 
                     <div className="mb-6">
-                        <label htmlFor="coverImage" className="block text-sm font-medium text-gray-400 mb-1">URL обкладинки (необов'язково)</label>
-                        <input
-                            data-testid="input-cover-image"
-                            type="text"
-                            id="coverImage"
-                            value={coverImage}
-                            onChange={(e) => { setCoverImage(e.target.value); setErrors(prev => ({ ...prev, coverImage: undefined })); }}
-                            className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${errors.coverImage ? 'border-red-500' : 'border-gray-600'}`}
-                            disabled={isSubmitting}
+                        <label htmlFor="coverImage" className="block text-sm font-medium text-gray-400 mb-1">
+                            URL обкладинки (необов'язково)
+                        </label>
+                        <Controller
+                            name="coverImage"
+                            control={control}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    data-testid="input-cover-image"
+                                    type="text"
+                                    id="coverImage"
+                                    className={`w-full px-3 py-2 bg-gray-700 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        errors.coverImage ? 'border-red-500' : 'border-gray-600'
+                                    }`}
+                                    disabled={isSubmitting}
+                                />
+                            )}
                         />
-                        {errors.coverImage && <p data-testid="error-cover-image" className="text-red-500 text-sm mt-1">{errors.coverImage}</p>}
+                        {errors.coverImage && (
+                            <p data-testid="error-cover-image" className="text-red-500 text-sm mt-1">
+                                {errors.coverImage.message}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mb-6">
-                        <label htmlFor="genre-select-add" className="block text-sm font-medium text-gray-400 mb-2">Вибрати жанри</label>
-                        {isLoadingGenres && <p data-testid="genres-loading" className="text-gray-400 mb-2">Завантаження жанрів...</p>}
-                        {isErrorGenres && <p data-testid="genres-error" className="text-red-500 mb-2">Помилка завантаження жанрів.</p>}
+                        <label htmlFor="genre-select-add" className="block text-sm font-medium text-gray-400 mb-2">
+                            Вибрати жанри
+                        </label>
+                        {isLoadingGenres && (
+                            <p data-testid="genres-loading" className="text-gray-400 mb-2">
+                                Завантаження жанрів...
+                            </p>
+                        )}
+                        {isErrorGenres && (
+                            <p data-testid="genres-error" className="text-red-500 mb-2">
+                                Помилка завантаження жанрів.
+                            </p>
+                        )}
 
                         {availableGenres && Array.isArray(availableGenres) && !isLoadingGenres && !isErrorGenres && (
                             <select
                                 data-testid="genre-selector"
                                 id="genre-select-add"
-                                onChange={handleAddGenre}
+                                onChange={(e) => {
+                                    handleAddGenre(e.target.value);
+                                    e.target.value = '';
+                                }}
                                 value=""
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 mb-3"
                                 disabled={isSubmitting || isLoadingGenres || isErrorGenres}
@@ -196,7 +224,9 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                         )}
 
                         {availableGenres && Array.isArray(availableGenres) && availableGenres.length === 0 && !isLoadingGenres && !isErrorGenres && (
-                            <p data-testid="no-genres-available" className="text-gray-400 mb-2">Доступні жанри відсутні.</p>
+                            <p data-testid="no-genres-available" className="text-gray-400 mb-2">
+                                Доступні жанри відсутні.
+                            </p>
                         )}
 
                         <div className="flex flex-wrap gap-2 mt-2" data-testid="selected-genres">
@@ -219,7 +249,11 @@ const CreateTrackModal: React.FC<CreateTrackModalProps> = ({
                                 </span>
                             ))}
                         </div>
-                        {errors.genres && <p data-testid="error-genre" className="text-red-500 text-sm mt-1">{errors.genres}</p>}
+                        {errors.genres && (
+                            <p data-testid="error-genre" className="text-red-500 text-sm mt-1">
+                                {errors.genres.message}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex justify-end">
