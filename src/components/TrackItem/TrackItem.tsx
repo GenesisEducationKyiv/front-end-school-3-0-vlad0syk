@@ -1,12 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Track } from '../../types';
-import { toast } from 'react-toastify';
-import { z } from 'zod';
-import { ResultAsync } from 'neverthrow';
-
-import { isHTMLAudioElement } from '../../lib/tg';
-
-const API_BASE_URL = 'http://localhost:8000';
+import { useFileUpload } from '../../lib/useFileUpload';
+import { useAudioPlayer } from '../../lib/useAudioPlayer';
 
 interface TrackItemProps {
     track: Track;
@@ -21,14 +16,6 @@ interface TrackItemProps {
     onPlayToggle: (id: Track['id']) => void;
 }
 
-const FileSchema = z.object({
-    type: z.string().refine(
-        (type) => ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3', 'audio/x-wav'].includes(type),
-        'Invalid file type. Only MP3, WAV, OGG allowed.'
-    ),
-    size: z.number().max(10 * 1024 * 1024, 'File size exceeds 10MB limit.'),
-});
-
 const TrackItem: React.FC<TrackItemProps> = ({
     track,
     isSelected,
@@ -42,42 +29,16 @@ const TrackItem: React.FC<TrackItemProps> = ({
     onPlayToggle,
 }) => {
     const isPlaying = playingTrackId === track.id;
-
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const audioRef = useRef<HTMLAudioElement>(null);
-
-    const [uploading, setUploading] = useState(false);
-    const [audioProgress, setAudioProgress] = useState(0);
-
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (audio) {
-            if (isPlaying) {
-                audio.play().catch(error => {
-                    console.error(`Playback error for track ${track.id}:`, error);
-                    toast.error(`Failed to play track ${track.title}.`);
-                });
-            } else {
-                audio.pause();
-            }
-        }
-    }, [isPlaying, track.id, track.title]);
-
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (audio) {
-            const handleLoadedMetadata = () => {
-                setAudioProgress(0);
-            };
-            audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-
-            setAudioProgress(0);
-
-            return () => {
-                audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-            };
-        }
-    }, [track.id, track.audioFile]);
+    
+    const { uploading, uploadFile } = useFileUpload();
+    const { 
+        audioRef, 
+        audioProgress, 
+        audioSrc, 
+        handleTimeUpdate, 
+        handleAudioEnded 
+    } = useAudioPlayer(track, isPlaying, onPlayToggle);
 
     const handleSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
@@ -101,39 +62,9 @@ const TrackItem: React.FC<TrackItemProps> = ({
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        if (!file) return;
 
-        if (!file) {
-            toast.error('No file selected.');
-            return;
-        }
-
-        setUploading(true);
-
-        const uploadResult = await ResultAsync.fromPromise(
-            Promise.resolve(FileSchema.parseAsync({ type: file.type, size: file.size })),
-            (zodError) => {
-                if (zodError instanceof Error && "errors" in zodError) {
-                    const first = (zodError as any).errors?.[0]?.message;
-                    return first || 'Unknown file validation error.';
-                }
-                return 'Unknown file validation error.';
-            }
-        ).andThen(() => {
-            return ResultAsync.fromPromise(
-                onUploadFile(track.id, file),
-                () => "File upload failed."
-            );
-        });
-        uploadResult.match(
-            () => {
-            },
-            (error) => {
-                console.error("Upload failed:", error);
-                toast.error(error);
-            }
-        );
-
-        setUploading(false);
+        await uploadFile(file, track.id, onUploadFile);
         e.target.value = '';
     };
 
@@ -145,23 +76,6 @@ const TrackItem: React.FC<TrackItemProps> = ({
     const handlePlayPauseClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onPlayToggle(track.id);
-    };
-
-    const handleTimeUpdate = (e: React.SyntheticEvent<HTMLAudioElement>) => {
-        if (isHTMLAudioElement(e.currentTarget)) {
-            const audio = e.currentTarget;
-            if (!isNaN(audio.duration) && audio.duration > 0) {
-                const progress = (audio.currentTime / audio.duration) * 100;
-                setAudioProgress(progress);
-            } else {
-                setAudioProgress(0);
-            }
-        }
-    };
-
-    const handleAudioEnded = () => {
-        onPlayToggle(track.id);
-        setAudioProgress(0);
     };
 
     const isFileOperationInProgress = uploading;
@@ -249,10 +163,10 @@ const TrackItem: React.FC<TrackItemProps> = ({
                 {track.audioFile && (
                     <audio
                         ref={audioRef}
-                        src={`${API_BASE_URL}/api/files/${track.audioFile}`}
+                        src={audioSrc}
                         onTimeUpdate={handleTimeUpdate}
                         onEnded={handleAudioEnded}
-                    ></audio>
+                    />
                 )}
 
                 {track.audioFile ? (
