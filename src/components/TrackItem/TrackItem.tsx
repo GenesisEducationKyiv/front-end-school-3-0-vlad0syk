@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Track } from '../../types';
 import { toast } from 'react-toastify';
 import { z } from 'zod';
-import { Result, ok, err } from 'neverthrow';
+import { ResultAsync } from 'neverthrow';
 
 import { isHTMLAudioElement } from '../../lib/tg';
 
@@ -107,37 +107,34 @@ const TrackItem: React.FC<TrackItemProps> = ({
             return;
         }
 
-        const parsedFile = FileSchema.safeParse(file);
-
-        let validationResult: Result<File, string>;
-
-        if (parsedFile.success) {
-            validationResult = ok(file);
-        } else {
-            const errorMessage = parsedFile.error.errors.length > 0
-                ? parsedFile.error.errors[0].message
-                : 'Unknown file validation error.';
-            validationResult = err(errorMessage);
-        }
-
-        if (validationResult.isErr()) {
-            toast.error(validationResult.error);
-            e.target.value = '';
-            return;
-        }
-
-        const validFile = validationResult.value;
-
         setUploading(true);
-        try {
-            await onUploadFile(track.id, validFile);
-        } catch (error) {
-            console.error("Upload failed:", error);
-            toast.error('File upload failed.');
-        } finally {
-            setUploading(false);
-            e.target.value = '';
-        }
+
+        const uploadResult = await ResultAsync.fromPromise(
+            Promise.resolve(FileSchema.parseAsync({ type: file.type, size: file.size })),
+            (zodError) => {
+                if (zodError instanceof Error && "errors" in zodError) {
+                    const first = (zodError as any).errors?.[0]?.message;
+                    return first || 'Unknown file validation error.';
+                }
+                return 'Unknown file validation error.';
+            }
+        ).andThen(() => {
+            return ResultAsync.fromPromise(
+                onUploadFile(track.id, file),
+                () => "File upload failed."
+            );
+        });
+        uploadResult.match(
+            () => {
+            },
+            (error) => {
+                console.error("Upload failed:", error);
+                toast.error(error);
+            }
+        );
+
+        setUploading(false);
+        e.target.value = '';
     };
 
     const handleDeleteFileClick = (e: React.MouseEvent) => {
