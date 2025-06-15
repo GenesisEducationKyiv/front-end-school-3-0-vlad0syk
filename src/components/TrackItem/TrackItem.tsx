@@ -4,6 +4,8 @@ import { toast } from 'react-toastify';
 import { z } from 'zod';
 import { Result, ok, err } from 'neverthrow';
 
+import { isHTMLAudioElement } from '../../lib/tg';
+
 const API_BASE_URL = 'http://localhost:8000';
 
 interface TrackItemProps {
@@ -26,10 +28,6 @@ const FileSchema = z.object({
     ),
     size: z.number().max(10 * 1024 * 1024, 'File size exceeds 10MB limit.'),
 });
-
-function isHTMLAudioElement(element: EventTarget | null): element is HTMLAudioElement {
-    return element instanceof HTMLAudioElement;
-}
 
 const TrackItem: React.FC<TrackItemProps> = ({
     track,
