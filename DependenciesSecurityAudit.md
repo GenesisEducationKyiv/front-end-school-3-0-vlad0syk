@@ -37,7 +37,7 @@ Our strategy to mitigate the risk of zero-day vulnerabilities includes:
 
 ## Suggested Package Replacement: lodash
 
-Based on our audit, **`lodash` (version 4.17.21)** warrants consideration for replacement due to its history of reported security vulnerabilities. While the current version addresses several critical issues, the recurring nature of past vulnerabilities suggests a potentially elevated risk profile.
+Based on our audit, **`lodash` (version 4.17.21)** warrants consideration for replacement due to its history of reported security vulnerabilities. While the current version addresses several critical issues (Prototype Pollution, Code Injection, ReDoS), the recurring nature of past vulnerabilities suggests a potentially elevated risk profile.
 
 Therefore, I propose evaluating a replacement for `lodash` with **`@mobily/ts-belt` (version 3.13.1)**.
 
