@@ -18,19 +18,21 @@ import {
     deleteMultipleTracks,
     fetchTracks
 } from './services/api/track';
-import { uploadAudioFile, deleteAudioFile,} from './services/api/audioFile';
+import { uploadAudioFile, deleteAudioFile } from './services/api/audioFile';
 import { fetchGenres } from './services/api/genres';
 import {
     Track,
     SortOption,
-    QueryParams,
     CreateTrackDto,
     UpdateTrackDto,
     Genre,
     BatchDeleteResponse,
-    PaginatedResponse
+    PaginatedResponse,
+    QueryParams
 } from './types';
 import { debounce } from 'lodash';
+import { useFiltersState } from './hooks/useFiltersState';
+import { usePagination } from './hooks/usePagination';
 
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -45,24 +47,30 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 function App() {
+    const {
+        params: queryParams,
+        setSearch,
+        setGenre,
+        setArtist,
+        setSortAndOrder,
+        clearFilters,
+        hasActiveFilters
+    } = useFiltersState();
+
+    const {
+        currentPage,
+        setPage: handlePageChange,
+        goToPrevPage,
+        canGoPrev
+    } = usePagination();
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [trackToEdit, setTrackToEdit] = useState<Track | null>(null);
-
     const [selectedTrackIds, setSelectedTrackIds] = useState<Set<Track['id']>>(new Set());
 
-    const [queryParams, setQueryParams] = useState<QueryParams>({
-        page: 1,
-        limit: 12,
-        sort: 'title',
-        order: 'asc',
-        search: '',
-        genre: undefined,
-        artist: undefined,
-    });
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [artistFilterTerm, setArtistFilterTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(queryParams.search || '');
+    const [artistFilterTerm, setArtistFilterTerm] = useState(queryParams.artist || '');
 
     const [playingTrackId, setPlayingTrackId] = useState<Track['id'] | null>(null);
 
@@ -93,7 +101,12 @@ function App() {
         retry: 1,
     });
 
-    const { data: genres, isLoading: isLoadingGenres, isError: isErrorGenres, error: errorGenres } = useQuery<Genre[], Error>({
+    const { 
+        data: genres, 
+        isLoading: isLoadingGenres, 
+        isError: isErrorGenres, 
+        error: errorGenres 
+    } = useQuery<Genre[], Error>({
         queryKey: ['genres'],
         queryFn: async () => {
             const result = await fetchGenres();
@@ -291,9 +304,8 @@ function App() {
     });
 
     const openCreateModal = () => setIsCreateModalOpen(true);
-    const closeCreateModal = () => {
-        setIsCreateModalOpen(false);
-    }
+    const closeCreateModal = () => setIsCreateModalOpen(false);
+
     const openEditModal = (track: Track) => {
         setTrackToEdit(track);
         setIsEditModalOpen(true);
@@ -339,52 +351,39 @@ function App() {
 
     const debouncedSearch = useMemo(
         () => debounce((term: string) => {
-            setQueryParams(prev => ({ ...prev, search: term.trim(), page: 1 }));
+            setSearch(term.trim() || undefined);
         }, 500),
-        []
+        [setSearch]
     );
+
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const term = event.target.value;
         setSearchTerm(term);
         debouncedSearch(term);
     };
 
-    const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const newSortValue = event.target.value as SortOption['value'];
-        const [sortField, sortOrder] = newSortValue.split('_') as [QueryParams['sort'], QueryParams['order']];
-        setQueryParams(prev => ({
-            ...prev,
-            sort: sortField,
-            order: sortOrder,
-            page: 1,
-        }));
-    };
-
-    const handleGenreFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedGenre = event.target.value === '' ? undefined : event.target.value;
-        setQueryParams(prev => ({
-            ...prev,
-            genre: selectedGenre,
-            page: 1,
-        }));
-    };
-
     const debouncedArtistFilter = useMemo(
         () => debounce((term: string) => {
-            setQueryParams(prev => ({ ...prev, artist: term.trim() || undefined, page: 1 }));
+            setArtist(term.trim() || undefined);
         }, 500),
-        []
+        [setArtist]
     );
+
     const handleArtistFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const term = event.target.value;
         setArtistFilterTerm(term);
         debouncedArtistFilter(term);
     };
 
-    const handlePageChange = (newPage: number) => {
-        if (paginationMeta && newPage >= 1 && newPage <= paginationMeta.totalPages) {
-            setQueryParams(prev => ({ ...prev, page: newPage }));
-        }
+    const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSortValue = event.target.value as SortOption['value'];
+        const [sortField, sortOrder] = newSortValue.split('_') as [QueryParams['sort'], QueryParams['order']];
+        setSortAndOrder(sortField, sortOrder);
+    };
+
+    const handleGenreFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedGenre = event.target.value === '' ? undefined : event.target.value;
+        setGenre(selectedGenre);
     };
 
     const handleSelectTrack = useCallback((id: Track['id']) => {
@@ -416,7 +415,7 @@ function App() {
     const handleBulkDelete = () => {
         if (selectedTrackIds.size === 0) return;
         openConfirmDialog(`Ви впевнені, що хочете видалити ${selectedTrackIds.size} вибраних треків?`, { type: 'track', id: Array.from(selectedTrackIds) });
-    }
+    };
 
     const handleDeleteFileWithConfirmation = (id: Track['id']) => {
         openConfirmDialog(`Ви впевнені, що хочете видалити аудіофайл для цього треку?`, { type: 'file', id: id });
@@ -441,7 +440,7 @@ function App() {
 
     const tracks = tracksData?.data ?? [];
     const paginationMeta = tracksData?.meta;
-    const currentSortValue = `${queryParams.sort}_${queryParams.order}` as SortOption['value'];
+    const currentSortValue = `${queryParams.sort || 'title'}_${queryParams.order || 'asc'}` as SortOption['value'];
 
     const isControlsLoading = isLoadingTracks || isLoadingGenres ||
         createTrackMutation.isPending || updateTrackMutation.isPending ||
@@ -533,6 +532,16 @@ function App() {
                         {deleteMultipleTracksMutation.isPending ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
                     </button>
                 )}
+
+                {hasActiveFilters && (
+                    <button
+                        onClick={clearFilters}
+                        disabled={isControlsLoading}
+                        className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Очистити фільтри
+                    </button>
+                )}
             </div>
 
             {isErrorTracks && (
@@ -558,19 +567,19 @@ function App() {
                 <div data-testid="pagination" className="flex justify-center items-center space-x-2 mt-6">
                     <button
                         data-testid="pagination-prev"
-                        onClick={() => handlePageChange(paginationMeta.page - 1)}
-                        disabled={paginationMeta.page <= 1 || isLoadingTracks}
+                        onClick={goToPrevPage}
+                        disabled={!canGoPrev || isLoadingTracks}
                         className="px-3 py-1 border border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
                     >
                         Назад
                     </button>
                     <span className="text-gray-400">
-                        Сторінка {paginationMeta.page} з {paginationMeta.totalPages}
+                        Сторінка {currentPage} з {paginationMeta.totalPages}
                     </span>
                     <button
                         data-testid="pagination-next"
-                        onClick={() => handlePageChange(paginationMeta.page + 1)}
-                        disabled={paginationMeta.page >= paginationMeta.totalPages || isLoadingTracks}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= paginationMeta.totalPages || isLoadingTracks}
                         className="px-3 py-1 border border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
                     >
                         Вперед
