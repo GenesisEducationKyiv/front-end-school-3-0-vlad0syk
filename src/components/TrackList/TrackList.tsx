@@ -1,6 +1,7 @@
 import React from 'react';
 import TrackItem from '../TrackItem/TrackItem';
 import { Track } from '../../types';
+import { useUIStore } from '../../stores/uiStore';
 
 interface TrackListProps {
   tracks: Track[];
@@ -27,6 +28,15 @@ const TrackList: React.FC<TrackListProps> = ({
   playingTrackId,
   onPlayToggle,
 }) => {
+  const { openEditModal } = useUIStore();
+
+  const handleEditTrack = (id: Track['id']) => {
+    const track = tracks.find(t => t.id === id);
+    if (track) {
+      openEditModal(track);
+    }
+  };
+
   if (isLoading) {
     return (
       <div data-testid="loading-tracks" className="text-center text-gray-400 py-10">
@@ -51,7 +61,7 @@ const TrackList: React.FC<TrackListProps> = ({
           track={track}
           isSelected={selectedTrackIds.has(track.id)}
           onSelect={onSelectTrack}
-          onEdit={onEditTrack}
+          onEdit={handleEditTrack}
           onDelete={onDeleteTrack}
           onUploadFile={onUploadFile}
           onDeleteFileWithConfirmation={onDeleteFileWithConfirmation}
