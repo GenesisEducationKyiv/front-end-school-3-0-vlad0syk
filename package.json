@@ -8,7 +8,13 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:e2e": "playwright test src/tests/e2e/",
+    "test:component": "playwright test src/tests/component/",
+    "test:integration": "vitest src/tests/integration/",
+    "test:unit": "vitest src/tests/unit/",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:component && npm run test:e2e",
+    "dev:test": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:e2e\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -16,6 +22,7 @@
     "@tailwindcss/vite": "^4.1.4",
     "@tanstack/react-query": "^5.74.4",
     "@tanstack/react-query-devtools": "^5.74.6",
+    "@testing-library/react": "^16.3.0",
     "@types/lodash": "^4.17.16",
     "lodash": "^4.17.21",
     "neverthrow": "^8.2.0",
@@ -29,11 +36,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
+    "@playwright/experimental-ct-react": "^1.53.1",
     "@playwright/test": "^1.53.1",
     "@types/node": "^24.0.3",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^4.6.0",
     "cross-env": "^7.0.3",
     "eslint": "^9.28.0",
     "eslint-plugin-react-hooks": "^5.2.0",

@@ -6,7 +6,7 @@ import { handleResponseWithZod } from '../../services/api/base';
 // Mock external dependencies
 vi.mock('../../services/api/base', () => ({
   handleResponseWithZod: vi.fn(),
-  API_BASE_URL: 'http://localhost:8000'
+  API_BASE_URL: 'http://localhost:3000'
 }));
 
 const mockedHandleResponseWithZod = vi.mocked(handleResponseWithZod);
@@ -45,7 +45,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert - check that fetch is called with the correct URL
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks?page=2&limit=20&sort=title&order=desc&search=rock+music&genre=Rock&artist=Queen'
+          'http://localhost:3000/api/tracks?page=2&limit=20&sort=title&order=desc&search=rock+music&genre=Rock&artist=Queen'
         );
         
         // Перевіряємо, що handleResponseWithZod викликається з правильною схемою
@@ -63,7 +63,7 @@ describe('Tracks API - Whitebox Tests', () => {
         await fetchTracks({});
 
         // Assert - URL must have an empty query string
-        expect(mockFetch).toHaveBeenCalledWith('http://localhost:8000/api/tracks?');
+        expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/api/tracks?');
       });
 
       it('should skip undefined parameters in URL construction', async () => {
@@ -80,7 +80,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert - only the specified parameters must be in the URL
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks?page=1&search=test'
+          'http://localhost:3000/api/tracks?page=1&search=test'
         );
       });
 
@@ -98,7 +98,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks?search=rock+%26+roll&artist=AC%2FDC'
+          'http://localhost:3000/api/tracks?search=rock+%26+roll&artist=AC%2FDC'
         );
       });
     });
@@ -124,7 +124,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert - check the details of the HTTP request
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks',
+          'http://localhost:3000/api/tracks',
           {
             method: 'POST',
             headers: {
@@ -165,7 +165,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks',
+          'http://localhost:3000/api/tracks',
           expect.objectContaining({
             body: JSON.stringify(complexTrackData)
           })
@@ -193,7 +193,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          `http://localhost:8000/api/tracks/${trackId}`,
+          `http://localhost:3000/api/tracks/${trackId}`,
           {
             method: 'PUT',
             headers: {
@@ -232,7 +232,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          `http://localhost:8000/api/tracks/${trackId}`,
+          `http://localhost:3000/api/tracks/${trackId}`,
           expect.objectContaining({
             body: JSON.stringify(partialUpdateData)
           })
@@ -251,7 +251,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          `http://localhost:8000/api/tracks/${trackId}`,
+          `http://localhost:3000/api/tracks/${trackId}`,
           { method: 'DELETE' }
         );
 
@@ -272,7 +272,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          `http://localhost:8000/api/tracks/${trackId}`,
+          `http://localhost:3000/api/tracks/${trackId}`,
           { method: 'DELETE' }
         );
       });
@@ -289,7 +289,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert - check the specific endpoint for the batch operation
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks/delete',
+          'http://localhost:3000/api/tracks/delete',
           {
             method: 'POST',
             headers: {
@@ -316,7 +316,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks/delete',
+          'http://localhost:3000/api/tracks/delete',
           expect.objectContaining({
             body: JSON.stringify({ ids: [] }),
           })
@@ -333,7 +333,7 @@ describe('Tracks API - Whitebox Tests', () => {
 
         // Assert
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/tracks/delete',
+          'http://localhost:3000/api/tracks/delete',
           expect.objectContaining({
             body: JSON.stringify({ ids: largeIdArray }),
           })

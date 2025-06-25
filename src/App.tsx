@@ -37,6 +37,13 @@ import { usePagination } from './hooks/usePagination';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Prevent Toastify from blocking pointer events during E2E tests
+if (typeof window !== 'undefined' && ((window as any).Cypress || (window as any).PW_TEST)) {
+    const style = document.createElement('style');
+    style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
+    document.head.appendChild(style);
+}
+
 const SORT_OPTIONS: SortOption[] = [
     { value: 'title_asc', label: 'Назва (А-Я)' },
     { value: 'title_desc', label: 'Назва (Я-А)' },
@@ -136,6 +143,7 @@ function App() {
         },
         onError: (error: Error) => {
             console.error('Failed to create track:', error);
+            closeCreateModal();
             toast.error(`Помилка створення треку: ${error.message}`);
         },
     });
@@ -438,6 +446,12 @@ function App() {
         updateTrackMutation.mutate({ id: trackToEdit.id, data: updatedData });
     };
 
+    const handleClearFilters = () => {
+        clearFilters();
+        setSearchTerm('');
+        setArtistFilterTerm('');
+    };
+
     const tracks = tracksData?.data ?? [];
     const paginationMeta = tracksData?.meta;
     const currentSortValue = `${queryParams.sort || 'title'}_${queryParams.order || 'asc'}` as SortOption['value'];
@@ -464,6 +478,7 @@ function App() {
                 aria-disabled={isControlsLoading ? 'true' : 'false'}
             >
                 <SearchInput
+                    data-testid="search-input"
                     value={searchTerm}
                     onChange={handleSearchChange}
                     placeholder="Пошук за назвою/артистом..."
@@ -535,7 +550,7 @@ function App() {
 
                 {hasActiveFilters && (
                     <button
-                        onClick={clearFilters}
+                        onClick={handleClearFilters}
                         disabled={isControlsLoading}
                         className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
