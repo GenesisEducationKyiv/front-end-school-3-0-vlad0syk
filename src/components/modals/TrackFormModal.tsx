@@ -7,7 +7,7 @@ interface TrackFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: CreateTrackDto | UpdateTrackDto) => void;
-    trackToEditId?: string | null;
+    trackToEditSlug?: string | null;
     isSubmitting?: boolean;
     availableGenres: Genre[];
     isLoadingGenres?: boolean;
@@ -19,7 +19,7 @@ const TrackFormModal: React.FC<TrackFormModalProps> = ({
     isOpen,
     onClose,
     onSubmit,
-    trackToEditId,
+    trackToEditSlug,
     isSubmitting = false,
     availableGenres,
     isLoadingGenres = false,
@@ -44,12 +44,12 @@ const TrackFormModal: React.FC<TrackFormModalProps> = ({
     } = useTrackForm({
         mode,
         isOpen,
-        trackToEditId,
+        trackToEditSlug,
         onSubmit,
         onClose
     });
 
-    if (!isOpen || (isEditMode && !trackToEditId)) {
+    if (!isOpen || (isEditMode && !trackToEditSlug)) {
         return null;
     }
 

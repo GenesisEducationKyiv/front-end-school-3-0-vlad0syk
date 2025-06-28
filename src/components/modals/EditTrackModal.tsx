@@ -6,7 +6,7 @@ interface EditTrackModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (data: UpdateTrackDto) => void;
-    trackToEditId: string | null;
+    trackToEditSlug: string | null;
     isSaving?: boolean;
     availableGenres: Genre[];
     isLoadingGenres?: boolean;
@@ -17,7 +17,7 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
     isOpen,
     onClose,
     onSave,
-    trackToEditId,
+    trackToEditSlug,
     isSaving = false,
     availableGenres,
     isLoadingGenres = false,
@@ -33,7 +33,7 @@ const EditTrackModal: React.FC<EditTrackModalProps> = ({
             isOpen={isOpen}
             onClose={onClose}
             onSubmit={handleSubmit}
-            trackToEditId={trackToEditId}
+            trackToEditSlug={trackToEditSlug}
             isSubmitting={isSaving}
             availableGenres={availableGenres}
             isLoadingGenres={isLoadingGenres}

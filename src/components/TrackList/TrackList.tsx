@@ -1,37 +1,16 @@
 import React from 'react';
 import TrackItem from '../TrackItem/TrackItem';
-import { Track, TrackIdType } from '../../types';
-import { useUIStore } from '../../stores/uiStore';
+import { Track } from '../../types';
 
 interface TrackListProps {
   tracks: Track[];
   isLoading: boolean;
-  selectedTrackIds: Set<TrackIdType>;
-  onSelectTrack: (id: TrackIdType) => void;
-  onDeleteTrack: (id: TrackIdType) => void;
-  onUploadFile: (id: TrackIdType, file: File) => Promise<void>;
-  onDeleteFileWithConfirmation: (id: TrackIdType) => void;
-  playingTrackId: TrackIdType | null;
-  onPlayToggle: (id: TrackIdType) => void;
 }
 
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
   isLoading,
-  selectedTrackIds,
-  onSelectTrack,
-  onDeleteTrack,
-  onUploadFile,
-  onDeleteFileWithConfirmation,
-  playingTrackId,
-  onPlayToggle,
 }) => {
-  const { openEditModal } = useUIStore();
-
-  const handleEditTrack = (id: TrackIdType) => {
-    openEditModal(id);
-  };
-
   if (isLoading) {
     return (
       <div data-testid="loading-tracks" className="text-center text-gray-400 py-10">
@@ -54,14 +33,6 @@ const TrackList: React.FC<TrackListProps> = ({
         <TrackItem
           key={track.id}
           track={track}
-          isSelected={selectedTrackIds.has(track.id)}
-          onSelect={onSelectTrack}
-          onEdit={handleEditTrack}
-          onDelete={onDeleteTrack}
-          onUploadFile={onUploadFile}
-          onDeleteFileWithConfirmation={onDeleteFileWithConfirmation}
-          playingTrackId={playingTrackId}
-          onPlayToggle={onPlayToggle}
           testId={`track-item-${track.id}`}
         />
       ))}

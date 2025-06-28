@@ -7,7 +7,7 @@ interface UIState {
   isConfirmDialogOpen: boolean;
   
   // Modal data
-  trackToEditId: string | null;
+  trackToEdit: { id: string; slug: string } | null;
   confirmDialogMessage: string;
   pendingDeleteContext: { type: 'track'; id: string | string[] } | { type: 'file'; id: string } | null;
   
@@ -17,7 +17,7 @@ interface UIState {
   // Actions
   openCreateModal: () => void;
   closeCreateModal: () => void;
-  openEditModal: (trackId: string) => void;
+  openEditModal: (track: { id: string; slug: string }) => void;
   closeEditModal: () => void;
   openConfirmDialog: (message: string, context: { type: 'track'; id: string | string[] } | { type: 'file'; id: string }) => void;
   closeConfirmDialog: () => void;
@@ -29,7 +29,7 @@ export const useUIStore = create<UIState>((set) => ({
   isCreateModalOpen: false,
   isEditModalOpen: false,
   isConfirmDialogOpen: false,
-  trackToEditId: null,
+  trackToEdit: null,
   confirmDialogMessage: '',
   pendingDeleteContext: null,
   isControlsLoading: false,
@@ -38,13 +38,13 @@ export const useUIStore = create<UIState>((set) => ({
   openCreateModal: () => set({ isCreateModalOpen: true }),
   closeCreateModal: () => set({ isCreateModalOpen: false }),
   
-  openEditModal: (trackId: string) => set({ 
+  openEditModal: (track: { id: string; slug: string }) => set({ 
     isEditModalOpen: true, 
-    trackToEditId: trackId 
+    trackToEdit: track 
   }),
   closeEditModal: () => set({ 
     isEditModalOpen: false, 
-    trackToEditId: null 
+    trackToEdit: null 
   }),
   
   openConfirmDialog: (message: string, context: { type: 'track'; id: string | string[] } | { type: 'file'; id: string }) => set({

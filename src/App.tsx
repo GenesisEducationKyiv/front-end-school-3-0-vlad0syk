@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { debounce } from 'lodash';
 import SearchInput from './components/SearchInput/SearchInput';
 import TrackList from './components/TrackList/TrackList';
@@ -49,25 +49,20 @@ function App() {
         canGoPrev
     } = usePagination();
 
-    const {
-        isCreateModalOpen,
-        isEditModalOpen,
-        isConfirmDialogOpen,
-        trackToEditId,
-        confirmDialogMessage,
-        pendingDeleteContext,
-        openCreateModal,
-        closeCreateModal,
-        closeEditModal,
-        closeConfirmDialog
-    } = useUIStore();
+    const isCreateModalOpen = useUIStore(state => state.isCreateModalOpen);
+    const isEditModalOpen = useUIStore(state => state.isEditModalOpen);
+    const isConfirmDialogOpen = useUIStore(state => state.isConfirmDialogOpen);
+    const trackToEdit = useUIStore(state => state.trackToEdit);
+    const confirmDialogMessage = useUIStore(state => state.confirmDialogMessage);
+    const pendingDeleteContext = useUIStore(state => state.pendingDeleteContext);
+    const openCreateModal = useUIStore(state => state.openCreateModal);
+    const closeCreateModal = useUIStore(state => state.closeCreateModal);
+    const closeEditModal = useUIStore(state => state.closeEditModal);
+    const closeConfirmDialog = useUIStore(state => state.closeConfirmDialog);
 
-    const {
-        selectedTrackIds,
-        playingTrackId,
-        searchTerm,
-        artistFilterTerm
-    } = useTrackStore();
+    const searchTerm = useTrackStore(state => state.searchTerm);
+    const artistFilterTerm = useTrackStore(state => state.artistFilterTerm);
+    const selectedTrackIds = useTrackStore(state => state.selectedTrackIds);
 
     const {
         tracksData,
@@ -81,18 +76,9 @@ function App() {
     } = useTrackQueries(queryParams);
 
     const {
-        handleSelectTrack,
-        handlePlayToggle,
-        handleDeleteTrack,
         handleBulkDelete,
-        handleUploadFile,
-        handleDeleteFileWithConfirmation,
-        handleSearchChange,
-        handleArtistFilterChange,
-        handleClearFilters,
         deleteTrackMutation,
         deleteMultipleTracksMutation,
-        uploadFileMutation,
         deleteFileMutation,
         createTrackMutation,
         updateTrackMutation
@@ -111,18 +97,6 @@ function App() {
         }, 300),
         [setArtist]
     );
-
-    useEffect(() => {
-        if (queryParams.search !== searchTerm) {
-            debouncedSetSearch(searchTerm);
-        }
-    }, [searchTerm, queryParams.search, debouncedSetSearch]);
-
-    useEffect(() => {
-        if (queryParams.artist !== artistFilterTerm) {
-            debouncedSetArtist(artistFilterTerm);
-        }
-    }, [artistFilterTerm, queryParams.artist, debouncedSetArtist]);
 
     const handleConfirmDelete = () => {
         if (!pendingDeleteContext) return;
@@ -143,8 +117,8 @@ function App() {
     };
 
     const handleEditSubmit = (updatedData: UpdateTrackDto) => {
-        if (trackToEditId) {
-            updateTrackMutation.mutate({ id: trackToEditId, data: updatedData });
+        if (trackToEdit?.id) {
+            updateTrackMutation.mutate({ id: trackToEdit.id, data: updatedData });
         }
     };
 
@@ -159,7 +133,6 @@ function App() {
 
     const handleClearAllFilters = () => {
         clearFilters();
-        handleClearFilters();
     };
 
     const tracks = tracksData?.data ?? [];
@@ -169,7 +142,7 @@ function App() {
     const isControlsLoading = isLoadingTracks || isLoadingGenres ||
         createTrackMutation.isPending || updateTrackMutation.isPending ||
         deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending ||
-        uploadFileMutation.isPending || deleteFileMutation.isPending;
+        deleteFileMutation.isPending;
 
     if (isErrorGenres) {
         console.error("Помилка завантаження жанрів:", errorGenres);
@@ -190,7 +163,7 @@ function App() {
                 <SearchInput
                     data-testid="search-input"
                     value={searchTerm}
-                    onChange={handleSearchChange}
+                    onChange={e => debouncedSetSearch(e.target.value)}
                     placeholder="Пошук за назвою/артистом..."
                     disabled={isControlsLoading}
                 />
@@ -227,7 +200,7 @@ function App() {
                         type="text"
                         id="artist-filter"
                         value={artistFilterTerm}
-                        onChange={handleArtistFilterChange}
+                        onChange={e => debouncedSetArtist(e.target.value)}
                         placeholder="Фільтр за артистом..."
                         className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={isControlsLoading}
@@ -245,18 +218,20 @@ function App() {
                     {createTrackMutation.isPending ? 'Створення...' : 'Створити трек'}
                 </button>
 
-                {selectedTrackIds.size > 0 && (
-                    <button
-                        data-testid="bulk-delete-button"
-                        onClick={handleBulkDelete}
-                        disabled={deleteMultipleTracksMutation.isPending || isControlsLoading}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                        data-loading={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
-                        aria-disabled={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
-                    >
-                        {deleteMultipleTracksMutation.isPending ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
-                    </button>
-                )}
+                {(() => {
+                    return selectedTrackIds.size > 0 && (
+                        <button
+                            data-testid="bulk-delete-button"
+                            onClick={handleBulkDelete}
+                            disabled={deleteMultipleTracksMutation.isPending || isControlsLoading}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                            data-loading={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
+                            aria-disabled={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
+                        >
+                            {deleteMultipleTracksMutation.isPending ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
+                        </button>
+                    );
+                })()}
 
                 {hasActiveFilters && (
                     <button
@@ -278,13 +253,6 @@ function App() {
             <TrackList
                 tracks={tracks}
                 isLoading={isLoadingTracks}
-                selectedTrackIds={selectedTrackIds}
-                onSelectTrack={handleSelectTrack}
-                onDeleteTrack={handleDeleteTrack}
-                onUploadFile={handleUploadFile}
-                onDeleteFileWithConfirmation={handleDeleteFileWithConfirmation}
-                playingTrackId={playingTrackId}
-                onPlayToggle={handlePlayToggle}
             />
 
             {paginationMeta && paginationMeta.totalPages > 1 && (
@@ -325,7 +293,7 @@ function App() {
                 isOpen={isEditModalOpen}
                 onClose={closeEditModal}
                 onSave={handleEditSubmit}
-                trackToEditId={trackToEditId}
+                trackToEditSlug={trackToEdit?.slug ?? null}
                 isSaving={updateTrackMutation.isPending}
                 availableGenres={genres || []}
                 isLoadingGenres={isLoadingGenres}

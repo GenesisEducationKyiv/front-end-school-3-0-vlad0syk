@@ -22,6 +22,11 @@ export const fetchTrackById = async (id: string): Promise<Result<Track, Error>> 
     return handleResponseWithZod(response, TrackSchema);
 };
 
+export const fetchTrackBySlug = async (slug: string): Promise<Result<Track, Error>> => {
+    const response = await fetch(`${API_BASE_URL}/api/tracks/${slug}`);
+    return handleResponseWithZod(response, TrackSchema);
+};
+
 export const createTrack = async (newTrackData: CreateTrackDto): Promise<Result<Track, Error>> => {
     const response = await fetch(`${API_BASE_URL}/api/tracks`, {
         method: 'POST',

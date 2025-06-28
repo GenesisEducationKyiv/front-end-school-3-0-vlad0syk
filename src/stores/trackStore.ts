@@ -20,9 +20,11 @@ interface TrackState {
   setSearchTerm: (term: string) => void;
   setArtistFilterTerm: (term: string) => void;
   clearSearchTerms: () => void;
+  isTrackSelected: (id: TrackIdType) => boolean;
+  isTrackPlaying: (id: TrackIdType) => boolean;
 }
 
-export const useTrackStore = create<TrackState>((set) => ({
+export const useTrackStore = create<TrackState>((set, get) => ({
   // Initial state
   selectedTrackIds: new Set(),
   playingTrackId: null,
@@ -53,5 +55,9 @@ export const useTrackStore = create<TrackState>((set) => ({
   clearSearchTerms: () => set({ 
     searchTerm: '', 
     artistFilterTerm: '' 
-  })
+  }),
+
+  isTrackSelected: (id: TrackIdType) => get().selectedTrackIds.has(id),
+  
+  isTrackPlaying: (id: TrackIdType) => get().playingTrackId === id
 })); 
