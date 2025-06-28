@@ -6,7 +6,6 @@ import { useFiltersState } from '../../hooks/useFiltersState';
 import { fetchTracks } from '../../services/api/track';
 import { fetchGenres } from '../../services/api/genres';
 
-// Mock the API modules
 vi.mock('../../services/api/track', () => ({
   fetchTracks: vi.fn()
 }));
@@ -15,7 +14,6 @@ vi.mock('../../services/api/genres', () => ({
   fetchGenres: vi.fn()
 }));
 
-// Mock the URL search params
 const mockSearchParams = new URLSearchParams();
 const mockSetSearchParams = vi.fn();
 
@@ -35,15 +33,12 @@ describe('Search Integration Tests', () => {
       },
     });
     
-    // Clear all mocks
     vi.clearAllMocks();
-    // Clear search params by deleting all entries
     for (const key of mockSearchParams.keys()) {
       mockSearchParams.delete(key);
     }
   });
 
-  // Wrapper component for testing hooks
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       {children}
@@ -52,7 +47,6 @@ describe('Search Integration Tests', () => {
 
   describe('Search and Filter Integration', () => {
     it('should integrate search term with API calls', async () => {
-      // Mock successful API response
       const mockTracksResponse = {
         isOk: () => true,
         value: {
@@ -66,24 +60,19 @@ describe('Search Integration Tests', () => {
 
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
-      // Set up search params
       mockSearchParams.set('search', 'test');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.search).toBe('test');
       });
 
-      // Verify that the search parameter is properly integrated
       expect(result.current.params.search).toBe('test');
       expect(result.current.hasActiveFilters).toBe(true);
     });
 
     it('should integrate multiple filters together', async () => {
-      // Mock successful API response
       const mockTracksResponse = {
         isOk: () => true,
         value: {
@@ -96,24 +85,20 @@ describe('Search Integration Tests', () => {
 
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
-      // Set up multiple search params
       mockSearchParams.set('search', 'rock');
       mockSearchParams.set('genre', 'Rock');
       mockSearchParams.set('artist', 'Rock Artist');
       mockSearchParams.set('sort', 'title');
       mockSearchParams.set('order', 'asc');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.search).toBe('rock');
         expect(result.current.params.genre).toBe('Rock');
         expect(result.current.params.artist).toBe('Rock Artist');
       });
 
-      // Verify that all filters are properly integrated
       expect(result.current.params.search).toBe('rock');
       expect(result.current.params.genre).toBe('Rock');
       expect(result.current.params.artist).toBe('Rock Artist');
@@ -123,7 +108,6 @@ describe('Search Integration Tests', () => {
     });
 
     it('should clear all filters when clearFilters is called', async () => {
-      // Mock successful API response
       const mockTracksResponse = {
         isOk: () => true,
         value: {
@@ -134,22 +118,17 @@ describe('Search Integration Tests', () => {
 
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
-      // Set up search params
       mockSearchParams.set('search', 'test');
       mockSearchParams.set('genre', 'Rock');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.search).toBe('test');
       });
 
-      // Clear filters
       result.current.clearFilters();
 
-      // Verify that filters are cleared
       await waitFor(() => {
         expect(result.current.hasActiveFilters).toBe(false);
       });
@@ -170,19 +149,15 @@ describe('Search Integration Tests', () => {
 
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
-      // Set up search params
       mockSearchParams.set('search', 'test search');
       mockSearchParams.set('page', '1');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.search).toBe('test search');
       });
 
-      // Verify that the API would be called with correct parameters
       expect(fetchTracks).toHaveBeenCalledWith({
         search: 'test search',
         page: 1,
@@ -193,7 +168,6 @@ describe('Search Integration Tests', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      // Mock API error
       const mockErrorResponse = {
         isOk: () => false,
         error: new Error('API Error')
@@ -201,18 +175,14 @@ describe('Search Integration Tests', () => {
 
       (fetchTracks as any).mockResolvedValue(mockErrorResponse);
 
-      // Set up search params
       mockSearchParams.set('search', 'test');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.search).toBe('test');
       });
 
-      // The hook should still work even if API fails
       expect(result.current.params.search).toBe('test');
       expect(result.current.hasActiveFilters).toBe(true);
     });
@@ -227,18 +197,14 @@ describe('Search Integration Tests', () => {
 
       (fetchGenres as any).mockResolvedValue(mockGenresResponse);
 
-      // Set up genre filter
       mockSearchParams.set('genre', 'Rock');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.genre).toBe('Rock');
       });
 
-      // Verify genre integration
       expect(result.current.params.genre).toBe('Rock');
       expect(result.current.hasActiveFilters).toBe(true);
     });
@@ -256,20 +222,16 @@ describe('Search Integration Tests', () => {
 
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
-      // Set up search params with pagination
       mockSearchParams.set('search', 'test');
       mockSearchParams.set('page', '2');
 
-      // Render the hook
       const { result } = renderHook(() => useFiltersState(), { wrapper });
 
-      // Wait for the hook to initialize
       await waitFor(() => {
         expect(result.current.params.search).toBe('test');
         expect(result.current.params.page).toBe(2);
       });
 
-      // Verify pagination integration
       expect(result.current.params.search).toBe('test');
       expect(result.current.params.page).toBe(2);
       expect(result.current.hasActiveFilters).toBe(true);

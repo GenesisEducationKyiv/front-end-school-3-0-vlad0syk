@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Complete User Workflow - E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Check if the development server is running
     try {
       await page.goto('http://localhost:3000/', { timeout: 5000 });
       await page.waitForLoadState('networkidle', { timeout: 10000 });
@@ -12,49 +11,37 @@ test.describe('Complete User Workflow - E2E Tests', () => {
   });
 
   test('should handle search and filtering workflow', async ({ page }) => {
-    // Step 1: Test search functionality
     const searchInput = page.getByTestId('search-input');
     await searchInput.fill('search test');
-    await page.waitForTimeout(600); // Wait for debounce
+    await page.waitForTimeout(600);
 
-    // Step 2: Test genre filtering
     const genreFilter = page.getByTestId('filter-genre');
     const genreOptions = await genreFilter.locator('option').count();
     if (genreOptions > 1) {
       await genreFilter.selectOption('Pop');
     }
 
-    // Step 3: Test artist filtering
     const artistFilter = page.getByTestId('filter-artist');
     await artistFilter.fill('artist filter');
-    await page.waitForTimeout(600); // Wait for debounce
+    await page.waitForTimeout(600);
 
-    // Step 4: Test sorting
     const sortSelect = page.locator('select').filter({ hasText: 'Назва (А-Я)' });
     await sortSelect.selectOption('artist_asc');
 
-    // Step 5: Verify filters are active
     const clearFiltersButton = page.getByRole('button', { name: 'Очистити фільтри' });
     await expect(clearFiltersButton).toBeVisible({ timeout: 5000 });
 
-    // Step 6: Clear all filters
     await clearFiltersButton.click();
-    await page.waitForTimeout(2000); // Wait for debounce and UI update
+    await page.waitForTimeout(2000);
 
-    // Step 7: Verify filters are cleared
-    // Note: The clearFilters function might not clear the search input immediately
-    // Let's check if the clear filters button is hidden instead
     await expect(clearFiltersButton).not.toBeVisible({ timeout: 5000 });
     
-    // Verify genre and artist filters are cleared
     await expect(genreFilter).toHaveValue('');
     await expect(artistFilter).toHaveValue('');
   });
 
   test('should handle pagination workflow', async ({ page }) => {
-    // Create multiple tracks to test pagination
     for (let i = 1; i <= 3; i++) {
-      // Create track
       const createButton = page.getByTestId('create-track-button');
       await createButton.click();
 
@@ -70,54 +57,45 @@ test.describe('Complete User Workflow - E2E Tests', () => {
         await genreSelect.selectOption('Rock');
       }
 
-      // Use getByTestId for submit button in modal
       const submitButton = page.getByTestId('submit-button');
       await submitButton.click();
 
-      // Wait for modal to close
       const modalTitle = page.getByRole('heading', { name: 'Створити новий трек' });
       await expect(modalTitle).not.toBeVisible({ timeout: 10000 });
       
-      // Wait for toast to disappear
       await page.waitForTimeout(1000);
-      await page.waitForTimeout(1000); // Wait for API call
+      await page.waitForTimeout(1000);
     }
 
-    // Test pagination if it exists
     const pagination = page.getByTestId('pagination');
     
     if (await pagination.isVisible()) {
-      // Test next page
       const nextButton = page.getByTestId('pagination-next');
       if (await nextButton.isEnabled()) {
         await nextButton.click();
-        await page.waitForTimeout(500); // Reduced timeout
+        await page.waitForTimeout(500);
         
-        // Test previous page
         const prevButton = page.getByTestId('pagination-prev');
         if (await prevButton.isEnabled()) {
           await prevButton.click();
-          await page.waitForTimeout(500); // Reduced timeout
+          await page.waitForTimeout(500);
         }
       }
     }
 
-    // Clean up - delete created tracks
     const trackItems = page.locator('[data-testid*="track-item"]').filter({ hasText: 'Pagination Test Track' });
     const count = await trackItems.count();
     
     if (count > 0) {
-      // Select all pagination test tracks
       for (let i = 0; i < count; i++) {
         const trackItem = trackItems.nth(i);
         const checkbox = trackItem.locator('input[type="checkbox"]');
         if (await checkbox.isVisible()) {
           await checkbox.check();
-          await page.waitForTimeout(100); // Small delay between checks
+          await page.waitForTimeout(100);
         }
       }
 
-      // Delete selected tracks
       const bulkDeleteButton = page.getByTestId('bulk-delete-button');
       if (await bulkDeleteButton.isVisible()) {
         await expect(bulkDeleteButton).toBeVisible({ timeout: 5000 });
@@ -126,26 +104,21 @@ test.describe('Complete User Workflow - E2E Tests', () => {
         const confirmButton = page.getByTestId('confirm-button');
         await confirmButton.click();
 
-        // Wait for toast to disappear
         await page.waitForTimeout(1000);
-        await page.waitForTimeout(1000); // Wait for API call
+        await page.waitForTimeout(1000);
       }
     }
   });
 
   test('should handle error scenarios gracefully', async ({ page }) => {
-    // Test invalid form submission
     const createButton = page.getByTestId('create-track-button');
     await createButton.click();
 
-    // Use getByTestId for submit button in modal
     const submitButton = page.getByTestId('submit-button');
     await submitButton.click();
 
-    // Should show validation errors or handle gracefully
     await page.waitForTimeout(1000);
 
-    // Close modal if it's still open
     const modal = page.getByRole('dialog');
     if (await modal.isVisible()) {
       const closeButton = page.getByRole('button', { name: 'Скасувати' }).first();
@@ -154,17 +127,14 @@ test.describe('Complete User Workflow - E2E Tests', () => {
       }
     }
 
-    // Test search with special characters
     const searchInput = page.getByTestId('search-input');
     await searchInput.fill('!@#$%^&*()');
-    await page.waitForTimeout(600); // Wait for debounce
+    await page.waitForTimeout(600);
 
-    // Should handle gracefully without crashing
     await expect(searchInput).toHaveValue('!@#$%^&*()');
   });
 
   test('should handle responsive design', async ({ page }) => {
-    // Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     
     const searchInput = page.getByTestId('search-input');
@@ -172,14 +142,12 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     await searchInput.fill('mobile test');
     await expect(searchInput).toHaveValue('mobile test');
 
-    // Test tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
     await expect(searchInput).toBeVisible();
     await searchInput.clear();
     await searchInput.fill('tablet test');
     await expect(searchInput).toHaveValue('tablet test');
 
-    // Test desktop viewport
     await page.setViewportSize({ width: 1920, height: 1080 });
     await expect(searchInput).toBeVisible();
     await searchInput.clear();
@@ -188,19 +156,15 @@ test.describe('Complete User Workflow - E2E Tests', () => {
   });
 
   test('should handle accessibility features', async ({ page }) => {
-    // Test keyboard navigation
     await page.keyboard.press('Tab');
     
-    // Should focus on search input first
     const searchInput = page.getByTestId('search-input');
     await expect(searchInput).toBeFocused();
 
-    // Test screen reader support
     const mainHeading = page.getByRole('heading', { level: 1 });
     await expect(mainHeading).toBeVisible();
     await expect(mainHeading).toHaveText('My tracks');
 
-    // Test form labels
     const createButton = page.getByTestId('create-track-button');
     await createButton.click();
 
@@ -210,7 +174,6 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     const artistLabel = page.getByLabel('Виконавець');
     await expect(artistLabel).toBeVisible();
 
-    // Close modal
     const closeButton = page.getByRole('button', { name: 'Скасувати' }).first();
     if (await closeButton.isVisible()) {
       await closeButton.click();
@@ -218,7 +181,6 @@ test.describe('Complete User Workflow - E2E Tests', () => {
   });
 
   test('should handle file upload workflow', async ({ page }) => {
-    // Create a track first
     const createButton = page.getByTestId('create-track-button');
     await createButton.click();
 
@@ -237,33 +199,25 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     const submitButton = page.getByTestId('submit-button');
     await submitButton.click();
 
-    // Wait for modal to close
     const modalTitle = page.getByRole('heading', { name: 'Створити новий трек' });
     await expect(modalTitle).not.toBeVisible({ timeout: 10000 });
     
-    // Wait for toast to disappear
     await page.waitForTimeout(1000);
     await page.waitForTimeout(2000);
 
-    // Find the created track
     const trackItem = page.locator('[data-testid*="track-item"]').filter({ hasText: 'Upload Test Track' }).first();
     await expect(trackItem).toBeVisible({ timeout: 10000 });
 
-    // Test file upload button (if it exists)
     const uploadButton = trackItem.locator('[data-testid*="upload"]');
     if (await uploadButton.isVisible()) {
       await uploadButton.click();
       
-      // Test file input (this would require a file to be selected in a real scenario)
       const fileInput = trackItem.locator('input[type="file"]');
       if (await fileInput.isVisible()) {
-        // Note: In a real test, you would upload a file here
-        // For now, just verify the input is present
         await expect(fileInput).toBeVisible();
       }
     }
 
-    // Clean up - delete the track
     const checkbox = trackItem.locator('input[type="checkbox"]');
     await checkbox.check();
 
@@ -274,12 +228,11 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     const confirmButton = page.getByTestId('confirm-button');
     await confirmButton.click();
 
-    // Wait for toast to disappear
     await page.waitForTimeout(1000);
   });
 
   test('should handle audio player controls', async ({ page }) => {
-    // Create a track first
+
     const createButton = page.getByTestId('create-track-button');
     await createButton.click();
 
@@ -298,31 +251,25 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     const submitButton = page.getByTestId('submit-button');
     await submitButton.click();
 
-    // Wait for modal to close
     const modalTitle = page.getByRole('heading', { name: 'Створити новий трек' });
     await expect(modalTitle).not.toBeVisible({ timeout: 10000 });
     
-    // Wait for toast to disappear
     await page.waitForTimeout(1000);
     await page.waitForTimeout(2000);
 
-    // Find the created track
     const trackItem = page.locator('[data-testid*="track-item"]').filter({ hasText: 'Audio Test Track' }).first();
     await expect(trackItem).toBeVisible({ timeout: 10000 });
 
-    // Test play button (if it exists)
     const playButton = trackItem.locator('[data-testid*="play-button"]');
     if (await playButton.isVisible()) {
       await playButton.click();
       
-      // Test pause button (should appear after play)
       const pauseButton = trackItem.locator('[data-testid*="pause-button"]');
       if (await pauseButton.isVisible()) {
         await pauseButton.click();
       }
     }
 
-    // Clean up - delete the track
     const checkbox = trackItem.locator('input[type="checkbox"]');
     await checkbox.check();
 
@@ -333,7 +280,6 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     const confirmButton = page.getByTestId('confirm-button');
     await confirmButton.click();
 
-    // Wait for toast to disappear
     await page.waitForTimeout(1000);
   });
 }); 

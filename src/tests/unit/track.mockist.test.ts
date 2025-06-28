@@ -47,12 +47,6 @@ describe('Tracks API - Whitebox Tests', () => {
         expect(mockFetch).toHaveBeenCalledWith(
           'http://localhost:3000/api/tracks?page=2&limit=20&sort=title&order=desc&search=rock+music&genre=Rock&artist=Queen'
         );
-        
-        // Перевіряємо, що handleResponseWithZod викликається з правильною схемою
-        // expect(handleResponseWithZod).toHaveBeenCalledWith(
-        //   expect.any(Response),
-        //   PaginatedResponseSchema
-        // );
       });
 
       it('should handle empty query parameters correctly', async () => {
@@ -133,12 +127,6 @@ describe('Tracks API - Whitebox Tests', () => {
             body: JSON.stringify(trackData),
           }
         );
-
-        // Перевіряємо використання правильної схеми для валідації
-        // expect(handleResponseWithZod).toHaveBeenCalledWith(
-        //   expect.any(Response),
-        //   TrackSchema
-        // );
       });
 
       it('should handle complex track data with all optional fields', async () => {
@@ -202,11 +190,6 @@ describe('Tracks API - Whitebox Tests', () => {
             body: JSON.stringify(updateData),
           }
         );
-
-        // expect(handleResponseWithZod).toHaveBeenCalledWith(
-        //   expect.any(Response),
-        //   TrackSchema
-        // );
       });
 
       it('should handle partial updates correctly', async () => {
@@ -254,12 +237,6 @@ describe('Tracks API - Whitebox Tests', () => {
           `http://localhost:3000/api/tracks/${trackId}`,
           { method: 'DELETE' }
         );
-
-        // Перевіряємо, що використовується z.void() схема для void response
-        // expect(handleResponseWithZod).toHaveBeenCalledWith(
-        //   expect.any(Response),
-        //   expect.any(Object) // z.void() schema
-        // );
       });
 
       it('should handle special characters in track ID', async () => {
@@ -298,12 +275,6 @@ describe('Tracks API - Whitebox Tests', () => {
             body: JSON.stringify({ ids: trackIds }),
           }
         );
-
-        // Перевіряємо використання правильної схеми для batch response
-        // expect(handleResponseWithZod).toHaveBeenCalledWith(
-        //   expect.any(Response),
-        //   BatchDeleteResponseSchema
-        // );
       });
 
       it('should handle empty IDs array', async () => {
