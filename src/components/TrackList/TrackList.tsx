@@ -5,27 +5,11 @@ import { Track } from '../../types';
 interface TrackListProps {
   tracks: Track[];
   isLoading: boolean;
-  selectedTrackIds: Set<Track['id']>;
-  onSelectTrack: (id: Track['id']) => void;
-  onEditTrack: (id: Track['id']) => void;
-  onDeleteTrack: (id: Track['id']) => void;
-  onUploadFile: (id: Track['id'], file: File) => Promise<void>;
-  onDeleteFileWithConfirmation: (id: Track['id']) => void;
-  playingTrackId: Track['id'] | null;
-  onPlayToggle: (id: Track['id']) => void;
 }
 
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
   isLoading,
-  selectedTrackIds,
-  onSelectTrack,
-  onEditTrack,
-  onDeleteTrack,
-  onUploadFile,
-  onDeleteFileWithConfirmation,
-  playingTrackId,
-  onPlayToggle,
 }) => {
   if (isLoading) {
     return (
@@ -49,14 +33,6 @@ const TrackList: React.FC<TrackListProps> = ({
         <TrackItem
           key={track.id}
           track={track}
-          isSelected={selectedTrackIds.has(track.id)}
-          onSelect={onSelectTrack}
-          onEdit={onEditTrack}
-          onDelete={onDeleteTrack}
-          onUploadFile={onUploadFile}
-          onDeleteFileWithConfirmation={onDeleteFileWithConfirmation}
-          playingTrackId={playingTrackId}
-          onPlayToggle={onPlayToggle}
           testId={`track-item-${track.id}`}
         />
       ))}
