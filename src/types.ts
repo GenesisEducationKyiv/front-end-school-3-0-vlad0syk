@@ -10,7 +10,10 @@ export type UpdateTrackDto = z.infer<typeof UpdateTrackDtoSchema>;
 
 export type QueryParams = z.infer<typeof QueryParamsSchema>;
 
-export type PaginatedResponse<T> = z.infer<typeof PaginatedResponseSchema>;
+export type PaginatedResponse<T> = {
+    data: T[];
+    meta: z.infer<typeof PaginatedMetaSchema>;
+};
 
 export interface SortOption {
     value: `${NonNullable<QueryParams['sort']>}_${NonNullable<QueryParams['order']>}`;

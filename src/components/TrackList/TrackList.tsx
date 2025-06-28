@@ -8,7 +8,6 @@ interface TrackListProps {
   isLoading: boolean;
   selectedTrackIds: Set<Track['id']>;
   onSelectTrack: (id: Track['id']) => void;
-  onEditTrack: (id: Track['id']) => void;
   onDeleteTrack: (id: Track['id']) => void;
   onUploadFile: (id: Track['id'], file: File) => Promise<void>;
   onDeleteFileWithConfirmation: (id: Track['id']) => void;
@@ -21,7 +20,6 @@ const TrackList: React.FC<TrackListProps> = ({
   isLoading,
   selectedTrackIds,
   onSelectTrack,
-  onEditTrack,
   onDeleteTrack,
   onUploadFile,
   onDeleteFileWithConfirmation,
@@ -31,10 +29,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const { openEditModal } = useUIStore();
 
   const handleEditTrack = (id: Track['id']) => {
-    const track = tracks.find(t => t.id === id);
-    if (track) {
-      openEditModal(track);
-    }
+    openEditModal(id);
   };
 
   if (isLoading) {

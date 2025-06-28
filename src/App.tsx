@@ -16,7 +16,6 @@ import { useTrackStore } from './stores/trackStore';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Prevent Toastify from blocking pointer events during E2E tests
 if (typeof window !== 'undefined' && ((window as any).Cypress || (window as any).PW_TEST)) {
     const style = document.createElement('style');
     style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
@@ -50,12 +49,11 @@ function App() {
         canGoPrev
     } = usePagination();
 
-    // Zustand stores
     const {
         isCreateModalOpen,
         isEditModalOpen,
         isConfirmDialogOpen,
-        trackToEdit,
+        trackToEditId,
         confirmDialogMessage,
         pendingDeleteContext,
         openCreateModal,
@@ -71,7 +69,6 @@ function App() {
         artistFilterTerm
     } = useTrackStore();
 
-    // Custom hooks
     const {
         tracksData,
         isLoadingTracks,
@@ -85,7 +82,6 @@ function App() {
 
     const {
         handleSelectTrack,
-        handleDeselectTrack,
         handlePlayToggle,
         handleDeleteTrack,
         handleBulkDelete,
@@ -102,7 +98,6 @@ function App() {
         updateTrackMutation
     } = useTrackActions(queryParams);
 
-    // Debounced search effect
     const debouncedSetSearch = useMemo(
         () => debounce((term: string) => {
             setSearch(term || undefined);
@@ -117,7 +112,6 @@ function App() {
         [setArtist]
     );
 
-    // Sync local search terms with URL params
     useEffect(() => {
         if (queryParams.search !== searchTerm) {
             debouncedSetSearch(searchTerm);
@@ -130,7 +124,6 @@ function App() {
         }
     }, [artistFilterTerm, queryParams.artist, debouncedSetArtist]);
 
-    // Handle confirm dialog actions
     const handleConfirmDelete = () => {
         if (!pendingDeleteContext) return;
 
@@ -145,29 +138,25 @@ function App() {
         }
     };
 
-    // Handle form submissions
     const handleCreateSubmit = (newTrackData: CreateTrackDto) => {
         createTrackMutation.mutate(newTrackData);
     };
 
     const handleEditSubmit = (updatedData: UpdateTrackDto) => {
-        if (trackToEdit) {
-            updateTrackMutation.mutate({ id: trackToEdit.id, data: updatedData });
+        if (trackToEditId) {
+            updateTrackMutation.mutate({ id: trackToEditId, data: updatedData });
         }
     };
 
-    // Handle sort change
     const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const [sort, order] = event.target.value.split('_') as [string, string];
         setSortAndOrder(sort as any, order as any);
     };
 
-    // Handle genre filter change
     const handleGenreFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setGenre(event.target.value || undefined);
     };
 
-    // Handle clear filters
     const handleClearAllFilters = () => {
         clearFilters();
         handleClearFilters();
@@ -291,7 +280,6 @@ function App() {
                 isLoading={isLoadingTracks}
                 selectedTrackIds={selectedTrackIds}
                 onSelectTrack={handleSelectTrack}
-                onEditTrack={() => {}}
                 onDeleteTrack={handleDeleteTrack}
                 onUploadFile={handleUploadFile}
                 onDeleteFileWithConfirmation={handleDeleteFileWithConfirmation}
@@ -337,7 +325,7 @@ function App() {
                 isOpen={isEditModalOpen}
                 onClose={closeEditModal}
                 onSave={handleEditSubmit}
-                trackToEdit={trackToEdit}
+                trackToEditId={trackToEditId}
                 isSaving={updateTrackMutation.isPending}
                 availableGenres={genres || []}
                 isLoadingGenres={isLoadingGenres}
@@ -368,4 +356,4 @@ function App() {
     );
 }
 
-export default App;
+export default App; 

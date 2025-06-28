@@ -22,7 +22,7 @@ interface TrackState {
   clearSearchTerms: () => void;
 }
 
-export const useTrackStore = create<TrackState>((set, get) => ({
+export const useTrackStore = create<TrackState>((set) => ({
   // Initial state
   selectedTrackIds: new Set(),
   playingTrackId: null,

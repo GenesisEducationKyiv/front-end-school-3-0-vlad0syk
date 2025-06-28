@@ -1,5 +1,5 @@
 import React from 'react';
-import { Track, CreateTrackDto, UpdateTrackDto, Genre } from '../../types';
+import { CreateTrackDto, UpdateTrackDto, Genre } from '../../types';
 import { useTrackForm } from '../../hooks/useTrackForm';
 
 interface TrackFormModalProps {
@@ -7,7 +7,7 @@ interface TrackFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: CreateTrackDto | UpdateTrackDto) => void;
-    trackToEdit?: Track | null;
+    trackToEditId?: string | null;
     isSubmitting?: boolean;
     availableGenres: Genre[];
     isLoadingGenres?: boolean;
@@ -19,7 +19,7 @@ const TrackFormModal: React.FC<TrackFormModalProps> = ({
     isOpen,
     onClose,
     onSubmit,
-    trackToEdit,
+    trackToEditId,
     isSubmitting = false,
     availableGenres,
     isLoadingGenres = false,
@@ -39,17 +39,37 @@ const TrackFormModal: React.FC<TrackFormModalProps> = ({
         handleAddGenre,
         handleRemoveGenre,
         handleOverlayClick,
-        Controller
+        Controller,
+        isLoadingTrack
     } = useTrackForm({
         mode,
         isOpen,
-        trackToEdit,
+        trackToEditId,
         onSubmit,
         onClose
     });
 
-    if (!isOpen || (isEditMode && !trackToEdit)) {
+    if (!isOpen || (isEditMode && !trackToEditId)) {
         return null;
+    }
+
+    if (isEditMode && isLoadingTrack) {
+        return (
+            <div
+                className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
+                onClick={handleOverlayClick}
+            >
+                <div
+                    className="bg-gray-800 text-white rounded-lg shadow-xl p-6 w-full max-w-md relative"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <h2 className="text-2xl font-bold mb-4">{modalTitle}</h2>
+                    <div className="flex items-center justify-center py-8">
+                        <div className="text-gray-400">Завантаження даних треку...</div>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (

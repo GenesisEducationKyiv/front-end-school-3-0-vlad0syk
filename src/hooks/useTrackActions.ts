@@ -7,7 +7,6 @@ import { QueryParams } from '../types';
 
 export function useTrackActions(queryParams: QueryParams) {
   const { 
-    openEditModal, 
     openConfirmDialog 
   } = useUIStore();
   
