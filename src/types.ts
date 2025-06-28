@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export type Track = z.infer<typeof TrackSchema>;
 
+export type TrackIdType = Track['id'];
+
 export type Genre = z.infer<typeof GenreSchema>;
 
 export type CreateTrackDto = z.infer<typeof CreateTrackDtoSchema>;

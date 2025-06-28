@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { Track } from '../types';
+import { Track, TrackIdType } from '../types';
 import { isHTMLAudioElement } from '../lib/tg';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -8,7 +8,7 @@ const API_BASE_URL = 'http://localhost:8000';
 export const useAudioPlayer = (
     track: Track,
     isPlaying: boolean,
-    onPlayToggle: (id: Track['id']) => void
+    onPlayToggle: (id: TrackIdType) => void
 ) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [audioProgress, setAudioProgress] = useState(0);

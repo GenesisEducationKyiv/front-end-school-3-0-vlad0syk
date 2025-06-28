@@ -1,18 +1,18 @@
 import React from 'react';
 import TrackItem from '../TrackItem/TrackItem';
-import { Track } from '../../types';
+import { Track, TrackIdType } from '../../types';
 import { useUIStore } from '../../stores/uiStore';
 
 interface TrackListProps {
   tracks: Track[];
   isLoading: boolean;
-  selectedTrackIds: Set<Track['id']>;
-  onSelectTrack: (id: Track['id']) => void;
-  onDeleteTrack: (id: Track['id']) => void;
-  onUploadFile: (id: Track['id'], file: File) => Promise<void>;
-  onDeleteFileWithConfirmation: (id: Track['id']) => void;
-  playingTrackId: Track['id'] | null;
-  onPlayToggle: (id: Track['id']) => void;
+  selectedTrackIds: Set<TrackIdType>;
+  onSelectTrack: (id: TrackIdType) => void;
+  onDeleteTrack: (id: TrackIdType) => void;
+  onUploadFile: (id: TrackIdType, file: File) => Promise<void>;
+  onDeleteFileWithConfirmation: (id: TrackIdType) => void;
+  playingTrackId: TrackIdType | null;
+  onPlayToggle: (id: TrackIdType) => void;
 }
 
 const TrackList: React.FC<TrackListProps> = ({
@@ -28,7 +28,7 @@ const TrackList: React.FC<TrackListProps> = ({
 }) => {
   const { openEditModal } = useUIStore();
 
-  const handleEditTrack = (id: Track['id']) => {
+  const handleEditTrack = (id: TrackIdType) => {
     openEditModal(id);
   };
 

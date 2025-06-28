@@ -1,19 +1,19 @@
 import React, { useRef } from 'react';
-import { Track } from '../../types';
+import { Track, TrackIdType } from '../../types';
 import { useFileUpload } from '../../lib/useFileUpload';
 import { useAudioPlayer } from '../../lib/useAudioPlayer';
 
 interface TrackItemProps {
     track: Track;
     isSelected: boolean;
-    onSelect: (id: Track['id']) => void;
-    onEdit: (id: Track['id']) => void;
-    onDelete: (id: Track['id']) => void;
+    onSelect: (id: TrackIdType) => void;
+    onEdit: (id: TrackIdType) => void;
+    onDelete: (id: TrackIdType) => void;
     testId: string;
-    onUploadFile: (id: Track['id'], file: File) => Promise<void>;
-    onDeleteFileWithConfirmation: (id: Track['id']) => void;
-    playingTrackId: Track['id'] | null;
-    onPlayToggle: (id: Track['id']) => void;
+    onUploadFile: (id: TrackIdType, file: File) => Promise<void>;
+    onDeleteFileWithConfirmation: (id: TrackIdType) => void;
+    playingTrackId: TrackIdType | null;
+    onPlayToggle: (id: TrackIdType) => void;
 }
 
 const TrackItem: React.FC<TrackItemProps> = ({

@@ -1,22 +1,22 @@
 import { create } from 'zustand';
-import { Track } from '../types';
+import { TrackIdType } from '../types';
 
 interface TrackState {
   // Track selections
-  selectedTrackIds: Set<Track['id']>;
+  selectedTrackIds: Set<TrackIdType>;
   
   // Playing state
-  playingTrackId: Track['id'] | null;
+  playingTrackId: TrackIdType | null;
   
   // Search and filter terms
   searchTerm: string;
   artistFilterTerm: string;
   
   // Actions
-  selectTrack: (id: Track['id']) => void;
-  deselectTrack: (id: Track['id']) => void;
+  selectTrack: (id: TrackIdType) => void;
+  deselectTrack: (id: TrackIdType) => void;
   clearSelections: () => void;
-  setPlayingTrack: (id: Track['id'] | null) => void;
+  setPlayingTrack: (id: TrackIdType | null) => void;
   setSearchTerm: (term: string) => void;
   setArtistFilterTerm: (term: string) => void;
   clearSearchTerms: () => void;
@@ -30,13 +30,13 @@ export const useTrackStore = create<TrackState>((set) => ({
   artistFilterTerm: '',
   
   // Actions
-  selectTrack: (id: Track['id']) => set((state) => {
+  selectTrack: (id: TrackIdType) => set((state) => {
     const newSelectedIds = new Set(state.selectedTrackIds);
     newSelectedIds.add(id);
     return { selectedTrackIds: newSelectedIds };
   }),
   
-  deselectTrack: (id: Track['id']) => set((state) => {
+  deselectTrack: (id: TrackIdType) => set((state) => {
     const newSelectedIds = new Set(state.selectedTrackIds);
     newSelectedIds.delete(id);
     return { selectedTrackIds: newSelectedIds };
@@ -44,7 +44,7 @@ export const useTrackStore = create<TrackState>((set) => ({
   
   clearSelections: () => set({ selectedTrackIds: new Set() }),
   
-  setPlayingTrack: (id: Track['id'] | null) => set({ playingTrackId: id }),
+  setPlayingTrack: (id: TrackIdType | null) => set({ playingTrackId: id }),
   
   setSearchTerm: (term: string) => set({ searchTerm: term }),
   

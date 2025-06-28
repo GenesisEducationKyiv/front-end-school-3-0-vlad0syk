@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Track } from '../types';
+import { TrackIdType } from '../types';
 import { useUIStore } from '../stores/uiStore';
 import { useTrackStore } from '../stores/trackStore';
 import { useTrackMutations } from './useTrackMutations';
@@ -28,15 +28,15 @@ export function useTrackActions(queryParams: QueryParams) {
     updateTrackMutation
   } = useTrackMutations(queryParams);
 
-  const handleSelectTrack = useCallback((id: Track['id']) => {
+  const handleSelectTrack = useCallback((id: TrackIdType) => {
     selectTrack(id);
   }, [selectTrack]);
 
-  const handleDeselectTrack = useCallback((id: Track['id']) => {
+  const handleDeselectTrack = useCallback((id: TrackIdType) => {
     deselectTrack(id);
   }, [deselectTrack]);
 
-  const handlePlayToggle = useCallback((id: Track['id']) => {
+  const handlePlayToggle = useCallback((id: TrackIdType) => {
     const currentState = useTrackStore.getState();
     const isCurrentlyPlaying = currentState.playingTrackId === id;
     
@@ -45,7 +45,7 @@ export function useTrackActions(queryParams: QueryParams) {
     setPlayingTrack(isCurrentlyPlaying ? null : id);
   }, [setPlayingTrack]);
 
-  const handleDeleteTrack = useCallback((id: Track['id']) => {
+  const handleDeleteTrack = useCallback((id: TrackIdType) => {
     openConfirmDialog(
       'Ви впевнені, що хочете видалити цей трек?',
       { type: 'track', id }
@@ -62,14 +62,14 @@ export function useTrackActions(queryParams: QueryParams) {
     }
   }, [openConfirmDialog]);
 
-  const handleDeleteFileWithConfirmation = useCallback((id: Track['id']) => {
+  const handleDeleteFileWithConfirmation = useCallback((id: TrackIdType) => {
     openConfirmDialog(
       'Ви впевнені, що хочете видалити аудіофайл цього треку?',
       { type: 'file', id }
     );
   }, [openConfirmDialog]);
 
-  const handleUploadFile = useCallback(async (id: Track['id'], file: File) => {
+  const handleUploadFile = useCallback(async (id: TrackIdType, file: File) => {
     uploadFileMutation.mutate({ id, file });
   }, [uploadFileMutation]);
 
