@@ -5,6 +5,8 @@ import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { BrowserRouter } from 'react-router-dom';
+import { ApolloProvider } from '@apollo/client';
+import { apolloClient } from './lib/apollo-client';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,10 +30,12 @@ if (!rootElement) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <ApolloProvider client={apolloClient}>
         <QueryClientProvider client={queryClient}>
           <App />
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </ApolloProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

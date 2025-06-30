@@ -1,68 +1,172 @@
-import { Result } from 'neverthrow';
-import { QueryParams, PaginatedResponse, PaginatedResponseSchema, Track, CreateTrackDto, TrackSchema, UpdateTrackDto, BatchDeleteResponse, BatchDeleteResponseSchema } from '../../types.ts';
-import { handleResponseWithZod, API_BASE_URL } from './base.ts';
-import { z } from 'zod';
+import { gql } from '@apollo/client';
+import { apolloClient } from '../../lib/apollo-client';
+import { QueryParams, PaginatedResponse, Track, CreateTrackDto, UpdateTrackDto, BatchDeleteResponse } from '../../types';
 
-export const fetchTracks = async (params: QueryParams): Promise<Result<PaginatedResponse<Track>, Error>> => {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page.toString());
-    if (params.limit) query.append('limit', params.limit.toString());
-    if (params.sort) query.append('sort', params.sort);
-    if (params.order) query.append('order', params.order);
-    if (params.search) query.append('search', params.search);
-    if (params.genre) query.append('genre', params.genre);
-    if (params.artist) query.append('artist', params.artist);
+// GraphQL Queries & Mutations
+export const TRACKS_QUERY = gql`
+  query Tracks($page: Int, $limit: Int, $sort: TrackSort, $filters: TrackFilters) {
+    tracks(page: $page, limit: $limit, sort: $sort, filters: $filters) {
+      data {
+        id
+        title
+        artist
+        album
+        genres
+        slug
+        coverImage
+        audioFile
+        createdAt
+        updatedAt
+      }
+      meta {
+        total
+        page
+        limit
+        totalPages
+      }
+    }
+  }
+`;
 
-    const response = await fetch(`${API_BASE_URL}/api/tracks?${query.toString()}`);
-    return handleResponseWithZod(response, PaginatedResponseSchema);
+export const TRACK_BY_ID_QUERY = gql`
+  query Track($id: ID!) {
+    track(id: $id) {
+      id
+      title
+      artist
+      album
+      genres
+      slug
+      coverImage
+      audioFile
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const TRACK_BY_SLUG_QUERY = gql`
+  query TrackBySlug($slug: String!) {
+    trackBySlug(slug: $slug) {
+      id
+      title
+      artist
+      album
+      genres
+      slug
+      coverImage
+      audioFile
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const CREATE_TRACK_MUTATION = gql`
+  mutation CreateTrack($input: CreateTrackInput!) {
+    createTrack(input: $input) {
+      id
+      title
+      artist
+      album
+      genres
+      slug
+      coverImage
+      audioFile
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_TRACK_MUTATION = gql`
+  mutation UpdateTrack($id: ID!, $input: UpdateTrackInput!) {
+    updateTrack(id: $id, input: $input) {
+      id
+      title
+      artist
+      album
+      genres
+      slug
+      coverImage
+      audioFile
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_TRACK_MUTATION = gql`
+  mutation DeleteTrack($id: ID!) {
+    deleteTrack(id: $id)
+  }
+`;
+
+export const BATCH_DELETE_TRACKS_MUTATION = gql`
+  mutation DeleteMultipleTracks($ids: [ID!]!) {
+    deleteMultipleTracks(ids: $ids) {
+      success
+      failed
+    }
+  }
+`;
+
+// Service Functions
+export const fetchTracks = async (params: QueryParams) => {
+  const { data } = await apolloClient.query<{ tracks: PaginatedResponse<Track> }>({
+    query: TRACKS_QUERY,
+    variables: params,
+    fetchPolicy: 'network-only',
+  });
+  return data.tracks;
 };
 
-export const fetchTrackById = async (id: string): Promise<Result<Track, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks/${id}`);
-    return handleResponseWithZod(response, TrackSchema);
+export const fetchTrackById = async (id: string) => {
+  const { data } = await apolloClient.query<{ track: Track }>({
+    query: TRACK_BY_ID_QUERY,
+    variables: { id },
+    fetchPolicy: 'network-only',
+  });
+  return data.track;
 };
 
-export const fetchTrackBySlug = async (slug: string): Promise<Result<Track, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks/${slug}`);
-    return handleResponseWithZod(response, TrackSchema);
+export const fetchTrackBySlug = async (slug: string) => {
+  const { data } = await apolloClient.query<{ trackBySlug: Track }>({
+    query: TRACK_BY_SLUG_QUERY,
+    variables: { slug },
+    fetchPolicy: 'network-only',
+  });
+  return data.trackBySlug;
 };
 
-export const createTrack = async (newTrackData: CreateTrackDto): Promise<Result<Track, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTrackData),
-    });
-    return handleResponseWithZod(response, TrackSchema);
+export const createTrack = async (newTrackData: CreateTrackDto) => {
+  const { data } = await apolloClient.mutate<{ createTrack: Track }>({
+    mutation: CREATE_TRACK_MUTATION,
+    variables: { input: newTrackData },
+  });
+  return data?.createTrack;
 };
 
-export const updateTrack = async ({ id, data }: { id: string; data: UpdateTrackDto }): Promise<Result<Track, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    return handleResponseWithZod(response, TrackSchema);
+export const updateTrack = async ({ id, data: updateData }: { id: string; data: UpdateTrackDto }) => {
+  const { data } = await apolloClient.mutate<{ updateTrack: Track }>({
+    mutation: UPDATE_TRACK_MUTATION,
+    variables: { id, input: updateData },
+  });
+  return data?.updateTrack;
 };
 
-export const deleteTrack = async (id: string): Promise<Result<void, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks/${id}`, {
-        method: 'DELETE',
-    });
-    return handleResponseWithZod(response, z.void());
+export const deleteTrack = async (id: string) => {
+  const { data } = await apolloClient.mutate<{ deleteTrack: boolean }>({
+    mutation: DELETE_TRACK_MUTATION,
+    variables: { id },
+  });
+  return data?.deleteTrack;
 };
 
-export const deleteMultipleTracks = async (ids: string[]): Promise<Result<BatchDeleteResponse, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks/delete`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ids }),
-    });
-    return handleResponseWithZod(response, BatchDeleteResponseSchema);
+export const deleteMultipleTracks = async (ids: string[]) => {
+  const { data } = await apolloClient.mutate<{ deleteMultipleTracks: BatchDeleteResponse }>({
+    mutation: BATCH_DELETE_TRACKS_MUTATION,
+    variables: { ids },
+  });
+  return data?.deleteMultipleTracks;
 };
