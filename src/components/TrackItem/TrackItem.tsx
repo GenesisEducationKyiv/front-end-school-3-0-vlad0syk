@@ -2,242 +2,178 @@ import React, { useRef } from 'react';
 import { Track } from '../../types';
 import { useFileUpload } from '../../lib/useFileUpload';
 import { useAudioPlayer } from '../../lib/useAudioPlayer';
+import { useTrackStore } from '../../stores/trackStore';
+import { useUIStore } from '../../stores/uiStore';
+import { useTrackActions } from '../../hooks/useTrackActions';
 
 interface TrackItemProps {
     track: Track;
-    isSelected: boolean;
-    onSelect: (id: Track['id']) => void;
-    onEdit: (id: Track['id']) => void;
-    onDelete: (id: Track['id']) => void;
-    testId: string;
-    onUploadFile: (id: Track['id'], file: File) => Promise<void>;
-    onDeleteFileWithConfirmation: (id: Track['id']) => void;
-    playingTrackId: Track['id'] | null;
-    onPlayToggle: (id: Track['id']) => void;
+    testId?: string;
 }
 
-const TrackItem: React.FC<TrackItemProps> = ({
-    track,
-    isSelected,
-    onSelect,
-    onEdit,
-    onDelete,
-    testId,
-    onUploadFile,
-    onDeleteFileWithConfirmation,
-    playingTrackId,
-    onPlayToggle,
-}) => {
-    const isPlaying = playingTrackId === track.id;
+const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
     const { uploading, uploadFile } = useFileUpload();
-    const { 
-        audioRef, 
-        audioProgress, 
-        audioSrc, 
-        handleTimeUpdate, 
-        handleAudioEnded 
-    } = useAudioPlayer(track, isPlaying, onPlayToggle);
+    
+    const isTrackSelected = useTrackStore(state => state.isTrackSelected(track.id));
+    const isTrackPlaying = useTrackStore(state => state.isTrackPlaying(track.id));
+    const selectTrack = useTrackStore(state => state.selectTrack);
+    const deselectTrack = useTrackStore(state => state.deselectTrack);
+    const setPlayingTrack = useTrackStore(state => state.setPlayingTrack);
+    const openEditModal = useUIStore(state => state.openEditModal);
+    const { handleUploadFile } = useTrackActions({});
+    // Add other actions as needed (delete, upload, etc.)
 
-    const handleSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.stopPropagation();
-        onSelect(track.id);
+    const { audioRef, audioProgress, audioSrc, handleTimeUpdate, handleAudioEnded } = useAudioPlayer(
+        track,
+        isTrackPlaying,
+        () => setPlayingTrack(isTrackPlaying ? null : track.id)
+    );
+
+    const handleCheckboxChange = () => {
+        if (isTrackSelected) {
+            deselectTrack(track.id);
+        } else {
+            selectTrack(track.id);
+        }
     };
-
-    const handleEditClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onEdit(track.id);
-    };
-
-    const handleDeleteClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onDelete(track.id);
-    };
-
-    const handleUploadButtonClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        fileInputRef.current?.click();
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        await uploadFile(file, track.id, onUploadFile);
-        e.target.value = '';
-    };
-
-    const handleDeleteFileClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onDeleteFileWithConfirmation(track.id);
-    };
-
-    const handlePlayPauseClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onPlayToggle(track.id);
-    };
-
-    const isFileOperationInProgress = uploading;
 
     return (
         <div
             data-testid={testId}
-            className={`
-                relative
-                bg-gray-800 rounded-lg shadow-lg p-3
-                border-2
-                ${isSelected ? 'border-blue-500' : 'border-transparent'}
-                hover:bg-gray-700 transition-colors duration-150
-                ${isFileOperationInProgress ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}
-                flex flex-col items-center
-            `}
-            onClick={() => onSelect(track.id)}
+            className={`relative bg-gray-800 rounded-lg p-4 border-2 transition-all duration-200 ${
+                isTrackSelected ? 'border-blue-500 bg-blue-900/20' : 'border-gray-700 hover:border-gray-600'
+            }`}
         >
-            <input
-                type="checkbox"
-                data-testid={`track-checkbox-${track.id}`}
-                checked={isSelected}
-                onChange={handleSelectChange}
-                onClick={(e) => e.stopPropagation()}
-                className="absolute top-2 left-2 h-5 w-5 rounded text-blue-600 bg-gray-700 border-gray-500 focus:ring-blue-500 z-10"
-                disabled={isFileOperationInProgress}
-            />
-
-            <div className="absolute top-2 right-2 flex space-x-1 z-10">
-                <button
-                    data-testid={`edit-track-${track.id}`}
-                    onClick={handleEditClick}
-                    className="p-1 rounded-full bg-gray-600 hover:bg-blue-600 text-white transition-colors"
-                    aria-label="Edit track"
-                    disabled={isFileOperationInProgress}
-                >
-                    <img src="/pencil.svg" alt="Edit icon" className="h-4 w-4" />
-                </button>
-                <button
-                    data-testid={`delete-track-${track.id}`}
-                    onClick={handleDeleteClick}
-                    className="p-1 rounded-full bg-gray-600 hover:bg-red-600 text-white transition-colors"
-                    aria-label="Delete track"
-                    disabled={isFileOperationInProgress}
-                >
-                    <img src="/trash.svg" alt="Delete icon" className="h-4 w-4" />
-                </button>
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                    <input
+                        type="checkbox"
+                        checked={isTrackSelected}
+                        onChange={handleCheckboxChange}
+                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <h3 className="text-white font-semibold text-sm truncate max-w-[120px]">
+                        {track.title}
+                    </h3>
+                </div>
+                <div className="flex space-x-1">
+                    <button
+                        onClick={() => openEditModal({ id: track.id, slug: track.slug })}
+                        className="p-1 text-gray-400 hover:text-white transition-colors"
+                        title="Редагувати"
+                    >
+                        <img src="/pencil.svg" alt="Edit" className="w-4 h-4" />
+                    </button>
+                    {/* Add delete button and other actions here using store actions */}
+                </div>
             </div>
 
-            <div className="w-full mb-2">
-                {track.coverImage ? (
+            <p className="text-gray-400 text-xs mb-3 truncate">{track.artist}</p>
+
+            {track.coverImage && (
+                <div className="relative mb-3">
                     <img
                         src={track.coverImage}
-                        alt={`${track.title} cover`}
-                        className="w-full aspect-square object-cover rounded"
-                        onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            console.error(`Failed to load image for track ${track.id}: ${track.coverImage}`);
-                        }}
+                        alt={`Cover for ${track.title}`}
+                        className="w-full h-32 object-cover rounded"
                     />
-                ) : (
-                    <div className="w-full aspect-square bg-gray-700 flex items-center justify-center rounded">
-                        <img src="/music.svg" alt="Music icon" className="h-10 w-10 text-gray-400" />
-                    </div>
-                )}
+                </div>
+            )}
+
+            <div className="flex flex-wrap gap-1 mb-3">
+                {track.genres?.map((genre) => (
+                    <span
+                        key={genre}
+                        className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full"
+                    >
+                        {genre}
+                    </span>
+                ))}
             </div>
 
-            <h3
-                data-testid={`track-item-${track.id}-title`}
-                className="font-semibold text-base text-white text-center truncate w-full"
-                title={track.title}
-            >
-                {track.title}
-            </h3>
-
-            <p
-                data-testid={`track-item-${track.id}-artist`}
-                className="text-sm text-gray-400 text-center truncate w-full"
-                title={track.artist}
-            >
-                {track.artist}
-            </p>
-
-            <div className="mt-3 w-full flex flex-col items-center gap-2">
-                {track.audioFile && (
-                    <audio
-                        ref={audioRef}
-                        src={audioSrc}
-                        onTimeUpdate={handleTimeUpdate}
-                        onEnded={handleAudioEnded}
-                    />
-                )}
-
-                {track.audioFile ? (
-                    <div data-testid={`audio-player-${track.id}`} className="w-full flex flex-col items-center gap-2">
-                        <button
-                            data-testid={isPlaying ? `pause-button-${track.id}` : `play-button-${track.id}`}
-                            onClick={handlePlayPauseClick}
-                            className="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
-                            disabled={isFileOperationInProgress}
-                            aria-label={isPlaying ? 'Pause track' : 'Play track'}
-                        >
-                            {isPlaying ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                </svg>
-                            )}
-                        </button>
-
-                        <div data-testid={`audio-progress-${track.id}`} className="w-full bg-gray-600 rounded-full h-1.5 dark:bg-gray-700">
-                            <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${audioProgress}%` }}></div>
-                        </div>
-
-                        <button
-                            onClick={handleDeleteFileClick}
-                            className="text-sm text-red-400 hover:text-red-500 disabled:opacity-50"
-                            disabled={isFileOperationInProgress}
-                            aria-label="Remove audio file"
-                        >
-                            Видалити файл
-                        </button>
-                    </div>
-                ) : (
-                    <div className="w-full">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleFileUpload}
-                            accept="audio/*"
-                            disabled={isFileOperationInProgress}
-                            data-loading={uploading ? 'true' : 'false'}
-                            aria-disabled={uploading ? 'true' : 'false'}
+            <div className="flex items-center justify-between">
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => setPlayingTrack(isTrackPlaying ? null : track.id)}
+                        disabled={!track.audioFile}
+                        className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors"
+                        title={track.audioFile ? (isTrackPlaying ? 'Пауза' : 'Грати') : 'Немає аудіофайлу'}
+                    >
+                        <img
+                            src={isTrackPlaying ? "/pause.svg" : "/play.svg"}
+                            alt={isTrackPlaying ? "Pause" : "Play"}
+                            className="w-4 h-4"
                         />
+                    </button>
+
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors"
+                        title="Завантажити аудіофайл"
+                    >
+                        <img src="/upload.svg" alt="Upload" className="w-4 h-4" />
+                    </button>
+
+                    {track.audioFile && (
                         <button
-                            data-testid={`upload-track-${track.id}`}
-                            onClick={handleUploadButtonClick}
-                            className="w-full px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            disabled={isFileOperationInProgress}
-                            data-loading={uploading ? 'true' : 'false'}
-                            aria-disabled={uploading ? 'true' : 'false'}
+                            onClick={() => {
+                                // Implement delete file with confirmation logic
+                            }}
+                            className="p-2 bg-red-600 hover:bg-red-700 rounded transition-colors"
+                            title="Видалити аудіофайл"
                         >
-                            {uploading ? (
-                                'Завантаження...'
-                            ) : (
-                                <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                    Завантажити файл
-                                </>
-                            )}
+                            <img src="/trash.svg" alt="Delete file" className="w-4 h-4" />
                         </button>
+                    )}
+                </div>
+
+                {track.audioFile && (
+                    <div className="text-xs text-gray-400">
+                        <img src="/music.svg" alt="Audio" className="w-4 h-4 inline mr-1" />
+                        ✓
                     </div>
                 )}
             </div>
+
+            {isTrackPlaying && audioProgress > 0 && (
+                <div className="mt-2">
+                    <div className="w-full bg-gray-700 rounded-full h-1">
+                        <div
+                            className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                            style={{ width: `${audioProgress}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {track.audioFile && (
+                <audio
+                    ref={audioRef}
+                    src={audioSrc}
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={handleAudioEnded}
+                />
+            )}
+
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                        await uploadFile(file, track.id, handleUploadFile);
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
+                    }
+                }}
+                className="hidden"
+            />
         </div>
     );
-}
+};
 
 export default TrackItem;

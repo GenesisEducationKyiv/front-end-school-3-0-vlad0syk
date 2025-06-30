@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export type Track = z.infer<typeof TrackSchema>;
 
+export type TrackIdType = Track['id'];
+
 export type Genre = z.infer<typeof GenreSchema>;
 
 export type CreateTrackDto = z.infer<typeof CreateTrackDtoSchema>;
@@ -10,7 +12,10 @@ export type UpdateTrackDto = z.infer<typeof UpdateTrackDtoSchema>;
 
 export type QueryParams = z.infer<typeof QueryParamsSchema>;
 
-export type PaginatedResponse<T> = z.infer<typeof PaginatedResponseSchema>;
+export type PaginatedResponse<T> = {
+    data: T[];
+    meta: z.infer<typeof PaginatedMetaSchema>;
+};
 
 export interface SortOption {
     value: `${NonNullable<QueryParams['sort']>}_${NonNullable<QueryParams['order']>}`;

@@ -1,7 +1,8 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Track, CreateTrackDto, UpdateTrackDto } from '../types';
+import { fetchTrackBySlug } from '../services/api/track';
 import { z } from 'zod';
 
 export interface TrackFormData {
@@ -15,7 +16,7 @@ export interface TrackFormData {
 interface UseTrackFormProps {
     mode: 'create' | 'edit';
     isOpen: boolean;
-    trackToEdit?: Track | null;
+    trackToEditSlug?: string | null;
     onSubmit: (data: CreateTrackDto | UpdateTrackDto) => void;
     onClose: () => void;
 }
@@ -28,8 +29,10 @@ const TrackFormSchema = z.object({
     coverImage: z.string().optional(),
 });
 
-export const useTrackForm = ({ mode, isOpen, trackToEdit, onSubmit, onClose }: UseTrackFormProps) => {
+export const useTrackForm = ({ mode, isOpen, trackToEditSlug, onSubmit, onClose }: UseTrackFormProps) => {
     const isEditMode = mode === 'edit';
+    const [trackToEdit, setTrackToEdit] = useState<Track | null>(null);
+    const [isLoadingTrack, setIsLoadingTrack] = useState(false);
     
     const {
         control,
@@ -50,6 +53,32 @@ export const useTrackForm = ({ mode, isOpen, trackToEdit, onSubmit, onClose }: U
     });
 
     const genres = watch('genres') || [];
+
+    useEffect(() => {
+        if (isOpen && isEditMode && trackToEditSlug) {
+            console.log('Fetching track with slug:', trackToEditSlug);
+            setIsLoadingTrack(true);
+            fetchTrackBySlug(trackToEditSlug)
+                .then(result => {
+                    if (result.isOk()) {
+                        console.log('Track fetched successfully:', result.value);
+                        setTrackToEdit(result.value);
+                    } else {
+                        console.error('Failed to fetch track:', result.error);
+                        alert(`Помилка завантаження треку: ${result.error.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching track:', error);
+                    alert(`Помилка завантаження треку: ${error.message}`);
+                })
+                .finally(() => {
+                    setIsLoadingTrack(false);
+                });
+        } else {
+            setTrackToEdit(null);
+        }
+    }, [isOpen, trackToEditSlug, isEditMode, onClose]);
 
     useEffect(() => {
         if (isOpen) {
@@ -85,7 +114,6 @@ export const useTrackForm = ({ mode, isOpen, trackToEdit, onSubmit, onClose }: U
 
     const onSubmitForm = (formData: TrackFormData) => {
         if (isEditMode && trackToEdit) {
-            // Edit mode - only send changed fields
             const currentFormData = {
                 title: formData.title?.trim(),
                 artist: formData.artist?.trim(),
@@ -129,7 +157,6 @@ export const useTrackForm = ({ mode, isOpen, trackToEdit, onSubmit, onClose }: U
                 onClose();
             }
         } else {
-            // Create mode - send all data
             const createData: CreateTrackDto = {
                 title: formData.title,
                 artist: formData.artist,
@@ -156,6 +183,7 @@ export const useTrackForm = ({ mode, isOpen, trackToEdit, onSubmit, onClose }: U
         handleAddGenre,
         handleRemoveGenre,
         handleOverlayClick,
-        Controller
+        Controller,
+        isLoadingTrack
     };
 };
