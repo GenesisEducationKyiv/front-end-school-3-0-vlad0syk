@@ -1,21 +1,53 @@
-import { Result } from 'neverthrow';
-import { Track, TrackSchema } from '../../types.ts';
-import { handleResponseWithZod, API_BASE_URL } from './base.ts';
+import { gql } from '@apollo/client';
+import { apolloClient } from '../../lib/apollo-client';
+import { Track } from '../../types';
 
-export const uploadAudioFile = async ({ id, file }: { id: string; file: File }): Promise<Result<Track, Error>> => {
-    const formData = new FormData();
-    formData.append('file', file);
+export const UPLOAD_AUDIO_FILE_MUTATION = gql`
+  mutation UploadAudioFile($id: ID!, $file: Upload!) {
+    uploadAudioFile(id: $id, file: $file) {
+      id
+      title
+      artist
+      album
+      genres
+      slug
+      coverImage
+      audioFile
+      createdAt
+      updatedAt
+    }
+  }
+`;
 
-    const response = await fetch(`${API_BASE_URL}/api/tracks/${id}/upload`, {
-        method: 'POST',
-        body: formData,
-    });
-    return handleResponseWithZod(response, TrackSchema);
+export const DELETE_AUDIO_FILE_MUTATION = gql`
+  mutation DeleteAudioFile($id: ID!) {
+    deleteAudioFile(id: $id) {
+      id
+      title
+      artist
+      album
+      genres
+      slug
+      coverImage
+      audioFile
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const uploadAudioFile = async ({ id, file }: { id: string; file: File }): Promise<Track> => {
+  const { data } = await apolloClient.mutate<{ uploadAudioFile: Track }>({
+    mutation: UPLOAD_AUDIO_FILE_MUTATION,
+    variables: { id, file },
+  });
+  return data!.uploadAudioFile;
 };
 
-export const deleteAudioFile = async (id: string): Promise<Result<Track, Error>> => {
-    const response = await fetch(`${API_BASE_URL}/api/tracks/${id}/file`, {
-        method: 'DELETE',
-    });
-    return handleResponseWithZod(response, TrackSchema);
+export const deleteAudioFile = async (id: string): Promise<Track> => {
+  const { data } = await apolloClient.mutate<{ deleteAudioFile: Track }>({
+    mutation: DELETE_AUDIO_FILE_MUTATION,
+    variables: { id },
+  });
+  return data!.deleteAudioFile;
 };

@@ -17,6 +17,7 @@
     "dev:test": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:e2e\""
   },
   "dependencies": {
+    "@apollo/client": "^3.9.5",
     "@hookform/resolvers": "^5.1.1",
     "@mobily/ts-belt": "^3.13.1",
     "@tailwindcss/vite": "^4.1.4",
@@ -24,6 +25,7 @@
     "@tanstack/react-query-devtools": "^5.74.6",
     "@testing-library/react": "^16.3.0",
     "@types/lodash": "^4.17.16",
+    "graphql": "^16.8.1",
     "lodash": "^4.17.21",
     "neverthrow": "^8.2.0",
     "react": "^19.0.0",
