@@ -23,7 +23,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     const [deleteTrack, { loading }] = useMutation(DELETE_TRACK_MUTATION);
 
     const handleDelete = async () => {
-        await deleteTrack({ variables: { id: trackId } });
+        await deleteTrack({ variables: { id: trackId }, refetchQueries: ['Tracks'] });
         if (onDeleted) onDeleted();
         onClose();
     };

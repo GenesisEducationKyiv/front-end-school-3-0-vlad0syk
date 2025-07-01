@@ -2,7 +2,6 @@ import { gql } from '@apollo/client';
 import { apolloClient } from '../../lib/apollo-client';
 import { QueryParams, PaginatedResponse, Track, CreateTrackDto, UpdateTrackDto, BatchDeleteResponse } from '../../types';
 
-// GraphQL Queries & Mutations
 export const TRACKS_QUERY = gql`
   query Tracks($page: Int, $limit: Int, $sort: TrackSort, $filters: TrackFilters) {
     tracks(page: $page, limit: $limit, sort: $sort, filters: $filters) {
@@ -111,7 +110,6 @@ export const BATCH_DELETE_TRACKS_MUTATION = gql`
   }
 `;
 
-// Service Functions
 export const fetchTracks = async (params: QueryParams) => {
   const { data } = await apolloClient.query<{ tracks: PaginatedResponse<Track> }>({
     query: TRACKS_QUERY,

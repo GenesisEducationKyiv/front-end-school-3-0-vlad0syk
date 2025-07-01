@@ -1,5 +1,4 @@
-import React, { useMemo } from 'react';
-import { debounce } from 'lodash';
+import React from 'react';
 import SearchInput from './components/SearchInput/SearchInput';
 import TrackList from './components/TrackList/TrackList';
 import SortSelect from './components/SortSelect/SortSelect';
@@ -59,8 +58,8 @@ function App() {
     const closeEditModal = useUIStore(state => state.closeEditModal);
     const closeConfirmDialog = useUIStore(state => state.closeConfirmDialog);
 
-    const searchTerm = useTrackStore(state => state.searchTerm);
-    const artistFilterTerm = useTrackStore(state => state.artistFilterTerm);
+    const searchTerm = queryParams.search || '';
+    const artistFilterTerm = queryParams.artist || '';
     const selectedTrackIds = useTrackStore(state => state.selectedTrackIds);
 
     const { data: tracksData, loading: isLoadingTracks, error: errorTracks } = useTracksQuery(queryParams);
@@ -78,20 +77,6 @@ function App() {
         createTrackMutation,
         updateTrackMutation
     } = useTrackActions(queryParams);
-
-    const debouncedSetSearch = useMemo(
-        () => debounce((term: string) => {
-            setSearch(term || undefined);
-        }, 300),
-        [setSearch]
-    );
-
-    const debouncedSetArtist = useMemo(
-        () => debounce((term: string) => {
-            setArtist(term || undefined);
-        }, 300),
-        [setArtist]
-    );
 
     const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const [sort, order] = event.target.value.split('_') as [string, string];
@@ -133,7 +118,7 @@ function App() {
                 <SearchInput
                     data-testid="search-input"
                     value={searchTerm}
-                    onChange={e => debouncedSetSearch(e.target.value)}
+                    onChange={e => setSearch(e.target.value)}
                     placeholder="Пошук за назвою/артистом..."
                     disabled={isControlsLoading}
                 />
@@ -170,7 +155,7 @@ function App() {
                         type="text"
                         id="artist-filter"
                         value={artistFilterTerm}
-                        onChange={e => debouncedSetArtist(e.target.value)}
+                        onChange={e => setArtist(e.target.value)}
                         placeholder="Фільтр за артистом..."
                         className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={isControlsLoading}
@@ -261,11 +246,11 @@ function App() {
                 onClose={closeCreateModal}
             />
 
-            {trackToEdit?.slug && (
+            {trackToEdit?.id && (
                 <EditTrackModal
                     isOpen={isEditModalOpen}
                     onClose={closeEditModal}
-                    trackToEditSlug={trackToEdit.slug}
+                    trackToEditId={trackToEdit.id}
                 />
             )}
             

@@ -37,9 +37,9 @@ const UPDATE_TRACK_MUTATION = gql`
   }
 `;
 
-const TRACK_BY_SLUG_QUERY = gql`
-  query TrackBySlug($slug: String!) {
-    trackBySlug(slug: $slug) {
+const TRACK_BY_ID_QUERY = gql`
+  query Track($id: ID!) {
+    track(id: $id) {
       id
       title
       artist
@@ -64,11 +64,10 @@ interface TrackFormModalProps {
   mode: 'create' | 'edit';
   isOpen: boolean;
   onClose: () => void;
-  onSubmit?: (data: CreateTrackDto | UpdateTrackDto) => void; // Optional, for parent notification
-  trackToEditSlug?: string | null;
+  onSubmit?: (data: CreateTrackDto | UpdateTrackDto) => void;
+  trackToEditId?: string | null;
 }
 
-// Кастомний компонент для мультивибору жанрів
 const GenreMultiSelect = ({ options, value, onChange, disabled }: { options: string[]; value: string[]; onChange: (val: string[]) => void; disabled?: boolean }) => {
   const toggleGenre = (genre: string) => {
     if (value.includes(genre)) {
@@ -109,27 +108,23 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  trackToEditSlug,
+  trackToEditId,
 }) => {
   const isEditMode = mode === 'edit';
 
-  // Fetch genres
   const { data: genresData, loading: loadingGenres, error: errorGenres } = useQuery<{ genres: Genre[] }>(GENRES_QUERY);
 
-  // Fetch track for edit mode
-  const { data: trackData, loading: loadingTrack } = useQuery<{ trackBySlug: Track }>(
-    TRACK_BY_SLUG_QUERY,
+  const { data: trackData, loading: loadingTrack } = useQuery<{ track: Track }>(
+    TRACK_BY_ID_QUERY,
     {
-      variables: { slug: trackToEditSlug },
-      skip: !isEditMode || !trackToEditSlug,
+      variables: { id: trackToEditId },
+      skip: !isEditMode || !trackToEditId,
     }
   );
 
-  // Mutations
   const [createTrack, { loading: creating }] = useMutation(CREATE_TRACK_MUTATION);
   const [updateTrack, { loading: updating }] = useMutation(UPDATE_TRACK_MUTATION);
 
-  // Form setup
   const { control, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateTrackDto | UpdateTrackDto>({
     defaultValues: {
       title: '',
@@ -140,30 +135,37 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
     },
   });
 
-  // Populate form for edit mode
   useEffect(() => {
-    if (isEditMode && trackData?.trackBySlug) {
-      const { title, artist, album, genres, coverImage } = trackData.trackBySlug;
+    if (isEditMode && trackData?.track) {
+      const { title, artist, album, genres, coverImage } = trackData.track;
       reset({ title, artist, album: album || '', genres: genres || [], coverImage: coverImage || '' });
     }
   }, [isEditMode, trackData, reset]);
 
-  // Handle form submit
   const onFormSubmit = async (formData: CreateTrackDto | UpdateTrackDto) => {
-    if (isEditMode && trackData?.trackBySlug) {
+    if (isEditMode && trackData?.track) {
       await updateTrack({
-        variables: { id: trackData.trackBySlug.id, input: formData },
+        variables: { id: trackData.track.id, input: formData },
+        refetchQueries: ['Tracks'],
       });
     } else {
       await createTrack({
         variables: { input: formData },
+        refetchQueries: ['Tracks'],
       });
+      reset();
     }
     if (onSubmit) onSubmit(formData);
     onClose();
   };
 
-  if (!isOpen || (isEditMode && !trackToEditSlug)) return null;
+  useEffect(() => {
+    if (!isOpen) {
+      reset();
+    }
+  }, [isOpen, reset]);
+
+  if (!isOpen || (isEditMode && !trackToEditId)) return null;
 
   if (isEditMode && loadingTrack) {
     return (
@@ -178,7 +180,7 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
     );
   }
 
-  if (isEditMode && !loadingTrack && !trackData?.trackBySlug) {
+  if (isEditMode && !loadingTrack && !trackData?.track) {
     return (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center p-4 animate-fade-in">
         <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-2xl shadow-2xl p-8 w-full max-w-lg relative animate-modal-pop overflow-y-auto max-h-[90vh] flex flex-col items-center">
