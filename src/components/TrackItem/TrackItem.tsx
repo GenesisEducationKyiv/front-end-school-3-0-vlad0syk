@@ -1,7 +1,6 @@
-import React, { useRef } from 'react';
+import React, { Suspense, useRef } from 'react';
 import { Track } from '../../types';
 import { useFileUpload } from '../../lib/useFileUpload';
-import { useAudioPlayer } from '../../lib/useAudioPlayer';
 import { useTrackStore } from '../../stores/trackStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useTrackActions } from '../../hooks/useTrackActions';
@@ -10,6 +9,8 @@ interface TrackItemProps {
     track: Track;
     testId?: string;
 }
+
+const AudioPlayer = React.lazy(() => import('../lazy/AudioPlayer'));
 
 const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -23,12 +24,6 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
     const openEditModal = useUIStore(state => state.openEditModal);
     const { handleUploadFile } = useTrackActions({});
     // Add other actions as needed (delete, upload, etc.)
-
-    const { audioRef, audioProgress, audioSrc, handleTimeUpdate, handleAudioEnded } = useAudioPlayer(
-        track,
-        isTrackPlaying,
-        () => setPlayingTrack(isTrackPlaying ? null : track.id)
-    );
 
     const handleCheckboxChange = () => {
         if (isTrackSelected) {
@@ -137,24 +132,25 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
                 )}
             </div>
 
-            {isTrackPlaying && audioProgress > 0 && (
+            {isTrackPlaying && (
                 <div className="mt-2">
                     <div className="w-full bg-gray-700 rounded-full h-1">
                         <div
                             className="bg-blue-600 h-1 rounded-full transition-all duration-300"
-                            style={{ width: `${audioProgress}%` }}
+                            style={{ width: '100%' }}
                         />
                     </div>
                 </div>
             )}
 
             {track.audioFile && (
-                <audio
-                    ref={audioRef}
-                    src={audioSrc}
-                    onTimeUpdate={handleTimeUpdate}
-                    onEnded={handleAudioEnded}
-                />
+                <Suspense fallback={null}>
+                    <AudioPlayer
+                        track={track}
+                        isPlaying={isTrackPlaying}
+                        onPlayToggle={() => setPlayingTrack(isTrackPlaying ? null : track.id)}
+                    />
+                </Suspense>
             )}
 
             <input
