@@ -24,6 +24,7 @@
     "@tanstack/react-query-devtools": "^5.74.6",
     "@testing-library/react": "^16.3.0",
     "@types/lodash": "^4.17.16",
+    "@vitest/coverage-v8": "^3.2.4",
     "lodash": "^4.17.21",
     "neverthrow": "^8.2.0",
     "react": "^19.0.0",
