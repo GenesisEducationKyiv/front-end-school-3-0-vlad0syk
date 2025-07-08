@@ -25,7 +25,8 @@ export const useFileUpload = () => {
             Promise.resolve(FileSchema.parseAsync({ type: file.type, size: file.size })),
             (zodError) => {
                 if (zodError instanceof Error && "errors" in zodError) {
-                    const first = (zodError as any).errors?.[0]?.message;
+                    const errors = (zodError as { errors?: { message?: string }[] }).errors;
+                    const first = errors && errors[0]?.message;
                     return first || 'Unknown file validation error.';
                 }
                 return 'Unknown file validation error.';

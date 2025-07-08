@@ -1,4 +1,4 @@
-export function buildSearchParams<T extends Record<string, any>>(
+export function buildSearchParams<T extends Record<string, unknown>>(
   params: Partial<T>
 ): URLSearchParams {
   const searchParams = new URLSearchParams();
@@ -30,7 +30,7 @@ export interface SearchParamsOptions {
   arrayDelimiter?: string;
 }
 
-export function buildSearchParamsWithOptions<T extends Record<string, any>>(
+export function buildSearchParamsWithOptions<T extends Record<string, unknown>>(
   params: Partial<T>,
   options: SearchParamsOptions = {}
 ): URLSearchParams {
