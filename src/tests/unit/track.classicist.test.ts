@@ -7,6 +7,7 @@ import {
   deleteMultipleTracks
 } from '../../services/api/track';
 import { CreateTrackDto, UpdateTrackDto, QueryParams } from '../../types';
+import { vi } from 'vitest';
 
 const testTrack: CreateTrackDto = {
   title: 'Test Song',
@@ -25,7 +26,16 @@ const cleanup = async () => {
   }
 };
 
-beforeEach(cleanup);
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: true,
+    json: async () => ({}),
+    status: 200,
+    headers: { get: () => 'application/json' },
+    text: async () => '',
+  })));
+  cleanup();
+});
 
 test('should fetch tracks with default parameters', async () => {
   const result = await fetchTracks({});
