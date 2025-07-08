@@ -63,9 +63,8 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
                         className="p-1 text-gray-400 hover:text-white transition-colors"
                         title="Редагувати"
                     >
-                        <img src="/pencil.svg" alt="Edit" className="w-4 h-4" />
+                        <img src="/pencil.svg" alt="Edit" className="w-4 h-4" loading="lazy" />
                     </button>
-                    {/* Add delete button and other actions here using store actions */}
                 </div>
             </div>
 
@@ -113,7 +112,7 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
                         className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors"
                         title="Завантажити аудіофайл"
                     >
-                        <img src="/upload.svg" alt="Upload" className="w-4 h-4" />
+                        <img src="/upload.svg" alt="Upload" className="w-4 h-4" loading="lazy" />
                     </button>
 
                     {track.audioFile && (
@@ -124,14 +123,14 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
                             className="p-2 bg-red-600 hover:bg-red-700 rounded transition-colors"
                             title="Видалити аудіофайл"
                         >
-                            <img src="/trash.svg" alt="Delete file" className="w-4 h-4" />
+                            <img src="/trash.svg" alt="Delete file" className="w-4 h-4" loading="lazy" />
                         </button>
                     )}
                 </div>
 
                 {track.audioFile && (
                     <div className="text-xs text-gray-400">
-                        <img src="/music.svg" alt="Audio" className="w-4 h-4 inline mr-1" />
+                        <img src="/music.svg" alt="Audio" className="w-4 h-4 inline mr-1" loading="lazy" />
                         ✓
                     </div>
                 )}
