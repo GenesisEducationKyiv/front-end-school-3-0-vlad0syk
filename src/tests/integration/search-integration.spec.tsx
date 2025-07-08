@@ -58,6 +58,7 @@ describe('Search Integration Tests', () => {
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
       mockSearchParams.set('search', 'test');
@@ -83,6 +84,7 @@ describe('Search Integration Tests', () => {
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
       mockSearchParams.set('search', 'rock');
@@ -116,6 +118,7 @@ describe('Search Integration Tests', () => {
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
       mockSearchParams.set('search', 'test');
@@ -147,6 +150,7 @@ describe('Search Integration Tests', () => {
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
       mockSearchParams.set('search', 'test search');
@@ -173,6 +177,7 @@ describe('Search Integration Tests', () => {
         error: new Error('API Error')
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchTracks as any).mockResolvedValue(mockErrorResponse);
 
       mockSearchParams.set('search', 'test');
@@ -195,6 +200,7 @@ describe('Search Integration Tests', () => {
         value: ['Rock', 'Pop', 'Jazz', 'Classical']
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchGenres as any).mockResolvedValue(mockGenresResponse);
 
       mockSearchParams.set('genre', 'Rock');
@@ -220,6 +226,7 @@ describe('Search Integration Tests', () => {
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetchTracks as any).mockResolvedValue(mockTracksResponse);
 
       mockSearchParams.set('search', 'test');
