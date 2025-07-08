@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:e2e": "playwright test src/tests/e2e/",
+    "test:e2e": "playwright test",
     "test:component": "playwright test src/tests/component/",
     "test:integration": "vitest src/tests/integration/",
     "test:unit": "vitest src/tests/unit/",
