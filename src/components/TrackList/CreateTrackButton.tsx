@@ -31,7 +31,8 @@ export const CreateTrackButton: React.FC = () => {
           genres: ['Rock'],
           album: 'New Album'
         }
-      }
+      },
+      refetchQueries: ['Tracks'],
     });
     // Optionally refetch queries or update cache
   };
