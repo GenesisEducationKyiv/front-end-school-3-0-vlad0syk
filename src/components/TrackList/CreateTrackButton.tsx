@@ -1,29 +1,32 @@
-import React from 'react';
-import { useMutation } from '@apollo/client';
-import { CREATE_TRACK_MUTATION } from '../../services/api/track';
-import { CreateTrackDto, Track } from '../../types';
+import React, { useState } from 'react';
+import { createTrack } from '../../services/api/track';
+import { CreateTrackDto } from '../../types';
 
 export const CreateTrackButton: React.FC = () => {
-  const [createTrack, { loading, error }] = useMutation<{ createTrack: Track }, { input: CreateTrackDto }>(CREATE_TRACK_MUTATION);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    await createTrack({
-      variables: {
-        input: {
-          title: 'New Track',
-          artist: 'Artist Name',
-          genres: ['Rock'],
-          album: 'New Album'
-        }
-      },
-      refetchQueries: ['Tracks'],
-    });
+    setLoading(true);
+    setError(null);
+    const newTrack: CreateTrackDto = {
+      title: 'New Track',
+      artist: 'Artist Name',
+      genres: ['Rock'],
+      album: 'New Album',
+    };
+    const result = await createTrack(newTrack);
+    setLoading(false);
+    if (result.isErr()) {
+      setError('Error!');
+    }
+    // Можно добавить логику обновления списка треков, если нужно
   };
 
   return (
     <button onClick={handleCreate} disabled={loading}>
       {loading ? 'Creating...' : 'Create Track'}
-      {error && <span>Error!</span>}
+      {error && <span>{error}</span>}
     </button>
   );
 }; 
