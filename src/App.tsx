@@ -1,11 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { debounce } from 'lodash';
 import SearchInput from './components/SearchInput/SearchInput';
 import TrackList from './components/TrackList/TrackList';
 import SortSelect from './components/SortSelect/SortSelect';
-import CreateTrackModal from './components/modals/CreateTrackModal';
-import EditTrackModal from './components/modals/EditTrackModal';
-import ConfirmDialog from './components/modals/ConfirmDialog';
 import { SortOption, CreateTrackDto, UpdateTrackDto } from './types';
 import { useFiltersState } from './hooks/useFiltersState';
 import { usePagination } from './hooks/usePagination';
@@ -30,6 +27,10 @@ const SORT_OPTIONS: SortOption[] = [
     { value: 'createdAt_desc', label: 'Дата додавання (новіші)' },
     { value: 'createdAt_asc', label: 'Дата додавання (старіші)' },
 ];
+
+const CreateTrackModal = React.lazy(() => import('./components/modals/CreateTrackModal'));
+const EditTrackModal = React.lazy(() => import('./components/modals/EditTrackModal'));
+const ConfirmDialog = React.lazy(() => import('./components/modals/ConfirmDialog'));
 
 function App() {
     const {
@@ -279,34 +280,39 @@ function App() {
                 </div>
             )}
 
-            <CreateTrackModal
-                isOpen={isCreateModalOpen}
-                onClose={closeCreateModal}
-                onSubmit={handleCreateSubmit}
-                isSubmitting={createTrackMutation.isPending}
-                availableGenres={genres || []}
-                isLoadingGenres={isLoadingGenres}
-                isErrorGenres={isErrorGenres}
-            />
-
-            <EditTrackModal
-                isOpen={isEditModalOpen}
-                onClose={closeEditModal}
-                onSave={handleEditSubmit}
-                trackToEditSlug={trackToEdit?.slug ?? null}
-                isSaving={updateTrackMutation.isPending}
-                availableGenres={genres || []}
-                isLoadingGenres={isLoadingGenres}
-                isErrorGenres={isErrorGenres}
-            />
-            
-            <ConfirmDialog
-                isOpen={isConfirmDialogOpen}
-                onClose={closeConfirmDialog}
-                onConfirm={handleConfirmDelete}
-                message={confirmDialogMessage}
-                isConfirming={deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending || deleteFileMutation.isPending}
-            />
+            <Suspense fallback={null}>
+                {isCreateModalOpen && (
+                    <CreateTrackModal
+                        isOpen={isCreateModalOpen}
+                        onClose={closeCreateModal}
+                        onSubmit={handleCreateSubmit}
+                        isSubmitting={createTrackMutation.isPending}
+                        availableGenres={genres || []}
+                        isLoadingGenres={isLoadingGenres}
+                        isErrorGenres={isErrorGenres}
+                    />
+                )}
+                {isEditModalOpen && trackToEdit && (
+                    <EditTrackModal
+                        isOpen={isEditModalOpen}
+                        onClose={closeEditModal}
+                        onSave={handleEditSubmit}
+                        trackToEditSlug={trackToEdit.slug ?? null}
+                        isSaving={updateTrackMutation.isPending}
+                        availableGenres={genres || []}
+                        isLoadingGenres={isLoadingGenres}
+                        isErrorGenres={isErrorGenres}
+                    />
+                )}
+                {isConfirmDialogOpen && (
+                    <ConfirmDialog
+                        isOpen={isConfirmDialogOpen}
+                        onClose={closeConfirmDialog}
+                        message={confirmDialogMessage}
+                        onConfirm={handleConfirmDelete}
+                    />
+                )}
+            </Suspense>
 
             <ToastContainer
                 position="top-right"
