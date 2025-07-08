@@ -5,7 +5,7 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     try {
       await page.goto('http://localhost:3000/', { timeout: 5000 });
       await page.waitForLoadState('networkidle', { timeout: 10000 });
-    } catch (error) {
+    } catch {
       test.skip(true, 'Development server is not running. Please start it with "npm run dev"');
     }
   });

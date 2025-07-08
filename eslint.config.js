@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', '.nx/', 'playwright.config.ts'],
+    ignores: [
+      'dist',
+      'node_modules',
+      '.nx/',
+      'playwright.config.ts',
+      'vitest.config.ts',
+    ],
   },
   {
     files: ['**/*.{ts,tsx}'],
