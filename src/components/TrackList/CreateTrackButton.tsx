@@ -1,23 +1,7 @@
 import React from 'react';
-import { gql, useMutation } from '@apollo/client';
+import { useMutation } from '@apollo/client';
+import { CREATE_TRACK_MUTATION } from '../../services/api/track';
 import { CreateTrackDto, Track } from '../../types';
-
-const CREATE_TRACK_MUTATION = gql`
-  mutation CreateTrack($input: CreateTrackInput!) {
-    createTrack(input: $input) {
-      id
-      title
-      artist
-      album
-      genres
-      slug
-      coverImage
-      audioFile
-      createdAt
-      updatedAt
-    }
-  }
-`;
 
 export const CreateTrackButton: React.FC = () => {
   const [createTrack, { loading, error }] = useMutation<{ createTrack: Track }, { input: CreateTrackDto }>(CREATE_TRACK_MUTATION);
