@@ -14,7 +14,8 @@
     "test:integration": "vitest src/tests/integration/",
     "test:unit": "vitest src/tests/unit/",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:component && npm run test:e2e",
-    "dev:test": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:e2e\""
+    "dev:test": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run test:e2e\"",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
