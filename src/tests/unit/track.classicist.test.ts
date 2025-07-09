@@ -27,13 +27,193 @@ const cleanup = async () => {
 };
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn(async () => ({
-    ok: true,
-    json: async () => ({}),
-    status: 200,
-    headers: { get: () => 'application/json' },
-    text: async () => '',
-  })));
+  // Зберігаємо створені треки в пам'яті для імітації CRUD
+  let tracks: any[] = [];
+  let nextId = 1;
+
+  vi.stubGlobal('fetch', vi.fn(async (input, init) => {
+    const url = typeof input === 'string' ? input : input.url;
+    const method = (init && init.method) ? init.method.toUpperCase() : 'GET';
+
+    // --- CREATE ---
+    if (url.endsWith('/tracks') && method === 'POST') {
+      const body = JSON.parse(init?.body || '{}');
+      if (!body.title || body.title === '') {
+        return {
+          ok: false,
+          json: async () => ({
+            error: 'Title is required',
+            statusCode: 400,
+            details: ['Title']
+          }),
+          status: 400,
+          headers: { get: () => 'application/json' },
+          text: async () => '',
+        };
+      }
+      const newTrack = {
+        id: String(nextId++),
+        title: body.title,
+        artist: body.artist,
+        album: body.album ?? '',
+        genres: body.genres ?? [],
+        coverImage: body.coverImage ?? '',
+        slug: body.title.toLowerCase().replace(/\s+/g, '-'),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      tracks.push(newTrack);
+      return {
+        ok: true,
+        json: async () => newTrack,
+        status: 201,
+        headers: { get: () => 'application/json' },
+        text: async () => '',
+      };
+    }
+
+    // --- UPDATE ---
+    if (url.match(/\/tracks\/[^/]+$/) && method === 'PUT') {
+      const id = url.split('/').pop();
+      const body = JSON.parse(init?.body || '{}');
+      const idx = tracks.findIndex(t => t.id === id);
+      if (id === 'fake-id' || idx === -1) {
+        return {
+          ok: false,
+          json: async () => ({
+            error: 'Track not found',
+            statusCode: 404,
+            details: ['Not found']
+          }),
+          status: 404,
+          headers: { get: () => 'application/json' },
+          text: async () => '',
+        };
+      }
+      tracks[idx] = {
+        ...tracks[idx],
+        ...body,
+        updatedAt: new Date().toISOString(),
+        slug: (body.title ?? tracks[idx].title).toLowerCase().replace(/\s+/g, '-'),
+      };
+      return {
+        ok: true,
+        json: async () => tracks[idx],
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => '',
+      };
+    }
+
+    // --- DELETE ---
+    if (url.match(/\/tracks\/[^/]+$/) && method === 'DELETE') {
+      const id = url.split('/').pop();
+      if (id === 'fake-id' || !tracks.find(t => t.id === id)) {
+        return {
+          ok: false,
+          json: async () => ({
+            error: 'Track not found',
+            statusCode: 404,
+            details: ['Not found']
+          }),
+          status: 404,
+          headers: { get: () => 'application/json' },
+          text: async () => '',
+        };
+      }
+      tracks = tracks.filter(t => t.id !== id);
+      return {
+        ok: true,
+        json: async () => ({}),
+        status: 204,
+        headers: { get: () => 'application/json' },
+        text: async () => '',
+      };
+    }
+
+    // --- BATCH DELETE ---
+    if (url.endsWith('/tracks/delete') && method === 'POST') {
+      const body = JSON.parse(init?.body || '{}');
+      const ids = body.ids ?? [];
+      const success = ids.filter((id: string) => id !== 'fake-id' && tracks.find(t => t.id === id));
+      const failed = ids.filter((id: string) => id === 'fake-id' || !tracks.find(t => t.id === id));
+      tracks = tracks.filter(t => !success.includes(t.id));
+      return {
+        ok: true,
+        json: async () => ({
+          success,
+          failed,
+        }),
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => '',
+      };
+    }
+
+    // --- GET (fetchTracks) ---
+    if (url.includes('/tracks') && method === 'GET') {
+      const params = new URL(url, 'http://localhost').searchParams;
+      let data = [...tracks];
+
+      // search by title
+      if (params.has('search')) {
+        const search = params.get('search');
+        data = data.filter(t => t.title === search);
+      }
+      // filter by genre
+      if (params.has('genre')) {
+        const genre = params.get('genre');
+        data = data.filter(t => t.genres.includes(genre));
+      }
+      // pagination
+      const page = Number(params.get('page') || 1);
+      const limit = Number(params.get('limit') || 10);
+      const start = (page - 1) * limit;
+      const paged = data.slice(start, start + limit);
+
+      return {
+        ok: true,
+        json: async () => ({
+          data: paged,
+          meta: {
+            total: data.length,
+            page,
+            limit,
+            totalPages: Math.ceil(data.length / limit) || 1,
+          }
+        }),
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => '',
+      };
+    }
+
+    // За замовчуванням
+    return {
+      ok: true,
+      json: async () => ({}),
+      status: 200,
+      headers: { get: () => 'application/json' },
+      text: async () => '',
+    };
+  }));
+
+  // Очищення "бази" перед кожним тестом
+  tracks = [
+    {
+      id: '1',
+      title: 'Test Song',
+      artist: 'Test Artist',
+      album: 'Test Album',
+      genres: ['rock', 'pop'],
+      coverImage: 'https://example.com/cover.jpg',
+      slug: 'test-song',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  ];
+  nextId = 2;
+
   cleanup();
 });
 
