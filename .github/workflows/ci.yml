@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -32,7 +32,7 @@ jobs:
         run: npm run build
 
       - name: Run unit tests
-        run: npm test
+        run: npm test:unit
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -46,4 +46,4 @@ jobs:
         with:
           name: logs
           path: logs
-          if-no-files-found: ignore 
+          if-no-files-found: ignore
