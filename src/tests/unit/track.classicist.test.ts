@@ -164,7 +164,9 @@ beforeEach(() => {
       // filter by genre
       if (params.has('genre')) {
         const genre = params.get('genre');
-        data = data.filter(t => t.genres.includes(genre));
+        if (genre !== null) {
+          data = data.filter(t => t.genres.includes(genre));
+        }
       }
       // pagination
       const page = Number(params.get('page') || 1);
@@ -178,7 +180,7 @@ beforeEach(() => {
           data: paged,
           meta: {
             total: data.length,
-            page,
+            page, 
             limit,
             totalPages: Math.ceil(data.length / limit) || 1,
           }
