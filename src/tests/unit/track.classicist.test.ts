@@ -8,6 +8,7 @@ import {
 } from '../../services/api/track';
 import { CreateTrackDto, UpdateTrackDto, QueryParams } from '../../types';
 import { vi } from 'vitest';
+import type { Track } from '../../types';
 
 const testTrack: CreateTrackDto = {
   title: 'Test Song',
@@ -28,7 +29,7 @@ const cleanup = async () => {
 
 beforeEach(() => {
   // Зберігаємо створені треки в пам'яті для імітації CRUD
-  let tracks: any[] = [];
+  let tracks: Track[] = [];
   let nextId = 1;
 
   vi.stubGlobal('fetch', vi.fn(async (input, init) => {
