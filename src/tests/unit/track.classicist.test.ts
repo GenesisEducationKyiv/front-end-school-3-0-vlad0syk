@@ -21,7 +21,7 @@ const testTrack: CreateTrackDto = {
 let createdTrackId: string | null = null;
 
 const cleanup = async () => {
-  if (createdTrackId) {
+  if (createdTrackId !== null) {
     await deleteTrack(createdTrackId);
     createdTrackId = null;
   }
