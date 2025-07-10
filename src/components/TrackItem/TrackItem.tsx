@@ -1,7 +1,6 @@
 import React, { Suspense, useRef } from 'react';
 import { Track } from '../../types';
 import { useTrackStore } from '../../stores/trackStore';
-import useAudioPlayer from '../lazy/AudioPlayer';
 import { useUIStore } from '../../stores/uiStore';
 import { gql, useMutation } from '@apollo/client';
 
