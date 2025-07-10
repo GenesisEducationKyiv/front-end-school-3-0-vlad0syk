@@ -2,7 +2,14 @@ import { useCallback } from 'react';
 import { TrackIdType } from '../types';
 import { useUIStore } from '../stores/uiStore';
 import { useTrackStore } from '../stores/trackStore';
-import { useTrackMutations } from './useTrackMutations';
+import {
+  useCreateTrackMutation,
+  useUpdateTrackMutation,
+  useDeleteTrackMutation,
+  useDeleteMultipleTracksMutation,
+  useUploadAudioFileMutation,
+  useDeleteAudioFileMutation,
+} from './useTrackMutations';
 import { QueryParams } from '../types';
 
 export function useTrackActions(queryParams: QueryParams) {
@@ -19,14 +26,13 @@ export function useTrackActions(queryParams: QueryParams) {
     clearSearchTerms 
   } = useTrackStore();
   
-  const {
-    deleteTrackMutation,
-    deleteMultipleTracksMutation,
-    uploadFileMutation,
-    deleteFileMutation,
-    createTrackMutation,
-    updateTrackMutation
-  } = useTrackMutations(queryParams);
+  // Use individual Apollo mutations
+  const [createTrack, { loading: creatingTrack }] = useCreateTrackMutation();
+  const [updateTrack, { loading: updatingTrack }] = useUpdateTrackMutation();
+  const [deleteTrack, { loading: deletingTrack }] = useDeleteTrackMutation();
+  const [deleteMultipleTracks, { loading: deletingMultipleTracks }] = useDeleteMultipleTracksMutation();
+  const [uploadAudioFile, { loading: uploadingFile }] = useUploadAudioFileMutation();
+  const [deleteAudioFile, { loading: deletingFile }] = useDeleteAudioFileMutation();
 
   const handleSelectTrack = useCallback((id: TrackIdType) => {
     selectTrack(id);
@@ -70,8 +76,8 @@ export function useTrackActions(queryParams: QueryParams) {
   }, [openConfirmDialog]);
 
   const handleUploadFile = useCallback(async (id: TrackIdType, file: File) => {
-    uploadFileMutation.mutate({ id, file });
-  }, [uploadFileMutation]);
+    uploadAudioFile({ variables: { id, file } });
+  }, [uploadAudioFile]);
 
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -102,12 +108,12 @@ export function useTrackActions(queryParams: QueryParams) {
     handleArtistFilterChange,
     handleClearFilters,
     
-    // Mutations
-    deleteTrackMutation,
-    deleteMultipleTracksMutation,
-    uploadFileMutation,
-    deleteFileMutation,
-    createTrackMutation,
-    updateTrackMutation
+    // Mutations (Apollo style)
+    createTrackMutation: { mutate: createTrack, isPending: creatingTrack },
+    updateTrackMutation: { mutate: updateTrack, isPending: updatingTrack },
+    deleteTrackMutation: { mutate: deleteTrack, isPending: deletingTrack },
+    deleteMultipleTracksMutation: { mutate: deleteMultipleTracks, isPending: deletingMultipleTracks },
+    uploadFileMutation: { mutate: uploadAudioFile, isPending: uploadingFile },
+    deleteFileMutation: { mutate: deleteAudioFile, isPending: deletingFile },
   };
 } 

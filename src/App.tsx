@@ -1,15 +1,14 @@
-import React, { useMemo } from 'react';
-import { debounce } from 'lodash';
+import React from 'react';
 import SearchInput from './components/SearchInput/SearchInput';
 import TrackList from './components/TrackList/TrackList';
 import SortSelect from './components/SortSelect/SortSelect';
 import CreateTrackModal from './components/modals/CreateTrackModal';
 import EditTrackModal from './components/modals/EditTrackModal';
 import ConfirmDialog from './components/modals/ConfirmDialog';
-import { SortOption, CreateTrackDto, UpdateTrackDto } from './types';
+import { SortOption } from './types';
 import { useFiltersState } from './hooks/useFiltersState';
 import { usePagination } from './hooks/usePagination';
-import { useTrackQueries } from './hooks/useTrackQueries';
+import { useTracksQuery, useGenresQuery } from './hooks/useTrackQueries';
 import { useTrackActions } from './hooks/useTrackActions';
 import { useUIStore } from './stores/uiStore';
 import { useTrackStore } from './stores/trackStore';
@@ -53,27 +52,22 @@ function App() {
     const isEditModalOpen = useUIStore(state => state.isEditModalOpen);
     const isConfirmDialogOpen = useUIStore(state => state.isConfirmDialogOpen);
     const trackToEdit = useUIStore(state => state.trackToEdit);
-    const confirmDialogMessage = useUIStore(state => state.confirmDialogMessage);
     const pendingDeleteContext = useUIStore(state => state.pendingDeleteContext);
     const openCreateModal = useUIStore(state => state.openCreateModal);
     const closeCreateModal = useUIStore(state => state.closeCreateModal);
     const closeEditModal = useUIStore(state => state.closeEditModal);
     const closeConfirmDialog = useUIStore(state => state.closeConfirmDialog);
 
-    const searchTerm = useTrackStore(state => state.searchTerm);
-    const artistFilterTerm = useTrackStore(state => state.artistFilterTerm);
+    const searchTerm = queryParams.search || '';
+    const artistFilterTerm = queryParams.artist || '';
     const selectedTrackIds = useTrackStore(state => state.selectedTrackIds);
 
-    const {
-        tracksData,
-        isLoadingTracks,
-        isErrorTracks,
-        errorTracks,
-        genres,
-        isLoadingGenres,
-        isErrorGenres,
-        errorGenres
-    } = useTrackQueries(queryParams);
+    const { data: tracksData, loading: isLoadingTracks, error: errorTracks } = useTracksQuery(queryParams);
+    const { data: genresData, loading: isLoadingGenres, error: errorGenres } = useGenresQuery();
+
+    const isErrorTracks = !!errorTracks;
+    const isErrorGenres = !!errorGenres;
+    const genres = genresData?.genres ?? [];
 
     const {
         handleBulkDelete,
@@ -83,44 +77,6 @@ function App() {
         createTrackMutation,
         updateTrackMutation
     } = useTrackActions(queryParams);
-
-    const debouncedSetSearch = useMemo(
-        () => debounce((term: string) => {
-            setSearch(term || undefined);
-        }, 300),
-        [setSearch]
-    );
-
-    const debouncedSetArtist = useMemo(
-        () => debounce((term: string) => {
-            setArtist(term || undefined);
-        }, 300),
-        [setArtist]
-    );
-
-    const handleConfirmDelete = () => {
-        if (!pendingDeleteContext) return;
-
-        if (pendingDeleteContext.type === 'track') {
-            if (Array.isArray(pendingDeleteContext.id)) {
-                deleteMultipleTracksMutation.mutate(pendingDeleteContext.id);
-            } else {
-                deleteTrackMutation.mutate(pendingDeleteContext.id);
-            }
-        } else if (pendingDeleteContext.type === 'file') {
-            deleteFileMutation.mutate(pendingDeleteContext.id);
-        }
-    };
-
-    const handleCreateSubmit = (newTrackData: CreateTrackDto) => {
-        createTrackMutation.mutate(newTrackData);
-    };
-
-    const handleEditSubmit = (updatedData: UpdateTrackDto) => {
-        if (trackToEdit?.id) {
-            updateTrackMutation.mutate({ id: trackToEdit.id, data: updatedData });
-        }
-    };
 
     const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const [sort, order] = event.target.value.split('_') as [string, string];
@@ -135,7 +91,6 @@ function App() {
         clearFilters();
     };
 
-    const tracks = tracksData?.data ?? [];
     const paginationMeta = tracksData?.meta;
     const currentSortValue = `${queryParams.sort || 'title'}_${queryParams.order || 'asc'}` as SortOption['value'];
 
@@ -163,7 +118,7 @@ function App() {
                 <SearchInput
                     data-testid="search-input"
                     value={searchTerm}
-                    onChange={e => debouncedSetSearch(e.target.value)}
+                    onChange={e => setSearch(e.target.value)}
                     placeholder="Пошук за назвою/артистом..."
                     disabled={isControlsLoading}
                 />
@@ -200,7 +155,7 @@ function App() {
                         type="text"
                         id="artist-filter"
                         value={artistFilterTerm}
-                        onChange={e => debouncedSetArtist(e.target.value)}
+                        onChange={e => setArtist(e.target.value)}
                         placeholder="Фільтр за артистом..."
                         className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={isControlsLoading}
@@ -251,8 +206,15 @@ function App() {
             )}
 
             <TrackList
-                tracks={tracks}
-                isLoading={isLoadingTracks}
+                page={currentPage}
+                limit={queryParams.limit}
+                sort={queryParams.sort}
+                order={queryParams.order}
+                search={queryParams.search}
+                genre={queryParams.genre}
+                artist={queryParams.artist}
+                meta={paginationMeta}
+                onPageChange={handlePageChange}
             />
 
             {paginationMeta && paginationMeta.totalPages > 1 && (
@@ -282,44 +244,25 @@ function App() {
             <CreateTrackModal
                 isOpen={isCreateModalOpen}
                 onClose={closeCreateModal}
-                onSubmit={handleCreateSubmit}
-                isSubmitting={createTrackMutation.isPending}
-                availableGenres={genres || []}
-                isLoadingGenres={isLoadingGenres}
-                isErrorGenres={isErrorGenres}
             />
 
-            <EditTrackModal
-                isOpen={isEditModalOpen}
-                onClose={closeEditModal}
-                onSave={handleEditSubmit}
-                trackToEditSlug={trackToEdit?.slug ?? null}
-                isSaving={updateTrackMutation.isPending}
-                availableGenres={genres || []}
-                isLoadingGenres={isLoadingGenres}
-                isErrorGenres={isErrorGenres}
-            />
+            {trackToEdit?.id && (
+                <EditTrackModal
+                    isOpen={isEditModalOpen}
+                    onClose={closeEditModal}
+                    trackToEditId={trackToEdit.id}
+                />
+            )}
             
-            <ConfirmDialog
-                isOpen={isConfirmDialogOpen}
-                onClose={closeConfirmDialog}
-                onConfirm={handleConfirmDelete}
-                message={confirmDialogMessage}
-                isConfirming={deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending || deleteFileMutation.isPending}
-            />
+            {pendingDeleteContext?.type === 'track' && (
+                <ConfirmDialog
+                    isOpen={isConfirmDialogOpen}
+                    onClose={closeConfirmDialog}
+                    trackId={Array.isArray(pendingDeleteContext.id) ? pendingDeleteContext.id[0] : pendingDeleteContext.id}
+                />
+            )}
 
-            <ToastContainer
-                position="top-right"
-                autoClose={5000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                data-testid="toast-container"
-            />
+            <ToastContainer />
         </div>
     );
 }
