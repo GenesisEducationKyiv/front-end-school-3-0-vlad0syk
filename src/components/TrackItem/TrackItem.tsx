@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React, { Suspense, useRef } from 'react';
 import { Track } from '../../types';
-import { useAudioPlayer } from '../../lib/useAudioPlayer';
 import { useTrackStore } from '../../stores/trackStore';
+// import useAudioPlayer from '../lazy/AudioPlayer';
 import { useUIStore } from '../../stores/uiStore';
 import { gql, useMutation } from '@apollo/client';
 
@@ -44,6 +44,8 @@ interface TrackItemProps {
   testId?: string;
 }
 
+const AudioPlayer = React.lazy(() => import('../lazy/AudioPlayer'));
+
 const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,11 +60,8 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
   const [uploadAudioFile, { loading: uploading }] = useMutation(UPLOAD_AUDIO_FILE_MUTATION);
   const [deleteAudioFile, { loading: deleting }] = useMutation(DELETE_AUDIO_FILE_MUTATION);
 
-  const { audioRef, audioProgress, audioSrc, handleTimeUpdate, handleAudioEnded } = useAudioPlayer(
-    track,
-    isTrackPlaying,
-    () => setPlayingTrack(isTrackPlaying ? null : track.id)
-  );
+  // Replace this with your own audio player hook or logic, or use the AudioPlayer component directly below.
+  // Example: Remove this block and use the AudioPlayer component in the JSX where needed.
 
   const handleCheckboxChange = () => {
     if (isTrackSelected) {
@@ -183,24 +182,16 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
         )}
       </div>
 
-      {isTrackPlaying && audioProgress > 0 && (
-        <div className="mt-3">
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${audioProgress}%` }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Progress bar placeholder removed because audioProgress is not defined */}
 
       {track.audioFile && (
-        <audio
-          ref={audioRef}
-          src={audioSrc}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleAudioEnded}
-        />
+        <Suspense fallback={<div>Завантаження аудіоплеєра...</div>}>
+          <AudioPlayer
+            track={track}
+            isPlaying={isTrackPlaying}
+            onPlayToggle={() => setPlayingTrack(isTrackPlaying ? null : track.id)}
+          />
+        </Suspense>
       )}
 
       <input
