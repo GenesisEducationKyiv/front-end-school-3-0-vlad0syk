@@ -21,7 +21,7 @@ export const apolloClient = new ApolloClient({
         fields: {
           tracks: {
             keyArgs: false,
-            merge(existing = [], incoming) {
+            merge(_, incoming) {
               return incoming;
             },
           },

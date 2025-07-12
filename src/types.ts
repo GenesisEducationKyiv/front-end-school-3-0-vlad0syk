@@ -28,6 +28,35 @@ export type SortOrder = NonNullable<QueryParams['order']>;
 
 export type BatchDeleteResponse = z.infer<typeof BatchDeleteResponseSchema>;
 
+export type ApiError = z.infer<typeof ApiErrorSchema>;
+
+// Result type for API operations with proper type guards
+export type Result<T, E = Error> = 
+  | { isOk(): true; isErr(): false; value: T; error?: never }
+  | { isOk(): false; isErr(): true; value?: never; error: E };
+
+// Type guards for better type narrowing
+export const isOk = <T, E>(result: Result<T, E>): result is { isOk(): true; isErr(): false; value: T; error?: never } => {
+  return result.isOk();
+};
+
+export const isErr = <T, E>(result: Result<T, E>): result is { isOk(): false; isErr(): true; value?: never; error: E } => {
+  return result.isErr();
+};
+
+// Helper functions for creating Results
+export const ok = <T>(value: T): Result<T, never> => ({ 
+  isOk: () => true, 
+  isErr: () => false, 
+  value 
+});
+
+export const err = <E>(error: E): Result<never, E> => ({ 
+  isOk: () => false, 
+  isErr: () => true, 
+  error 
+});
+
 export const GenreSchema = z.string();
 
 export const TrackSchema = z.object({

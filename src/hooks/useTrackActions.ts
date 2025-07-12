@@ -10,29 +10,24 @@ import {
   useUploadAudioFileMutation,
   useDeleteAudioFileMutation,
 } from './useTrackMutations';
-import { QueryParams } from '../types';
 
-export function useTrackActions(queryParams: QueryParams) {
-  const { 
-    openConfirmDialog 
-  } = useUIStore();
-  
-  const { 
-    selectTrack, 
-    deselectTrack, 
-    setPlayingTrack, 
-    setSearchTerm, 
+export function useTrackActions() {
+  const { openConfirmDialog } = useUIStore();
+  const {
+    selectTrack,
+    deselectTrack,
+    setPlayingTrack,
+    setSearchTerm,
     setArtistFilterTerm,
-    clearSearchTerms 
+    clearSearchTerms,
   } = useTrackStore();
-  
-  // Use individual Apollo mutations
-  const [createTrack, { loading: creatingTrack }] = useCreateTrackMutation();
-  const [updateTrack, { loading: updatingTrack }] = useUpdateTrackMutation();
-  const [deleteTrack, { loading: deletingTrack }] = useDeleteTrackMutation();
-  const [deleteMultipleTracks, { loading: deletingMultipleTracks }] = useDeleteMultipleTracksMutation();
-  const [uploadAudioFile, { loading: uploadingFile }] = useUploadAudioFileMutation();
-  const [deleteAudioFile, { loading: deletingFile }] = useDeleteAudioFileMutation();
+
+  const [createTrack] = useCreateTrackMutation();
+  const [updateTrack] = useUpdateTrackMutation();
+  const [deleteTrack] = useDeleteTrackMutation();
+  const [deleteMultipleTracks] = useDeleteMultipleTracksMutation();
+  const [uploadAudioFile] = useUploadAudioFileMutation();
+  const [deleteAudioFile] = useDeleteAudioFileMutation();
 
   const handleSelectTrack = useCallback((id: TrackIdType) => {
     selectTrack(id);
@@ -45,9 +40,6 @@ export function useTrackActions(queryParams: QueryParams) {
   const handlePlayToggle = useCallback((id: TrackIdType) => {
     const currentState = useTrackStore.getState();
     const isCurrentlyPlaying = currentState.playingTrackId === id;
-    
-    // If the same track is playing, pause it (set to null)
-    // If a different track is playing or no track is playing, play this track
     setPlayingTrack(isCurrentlyPlaying ? null : id);
   }, [setPlayingTrack]);
 
@@ -75,8 +67,15 @@ export function useTrackActions(queryParams: QueryParams) {
     );
   }, [openConfirmDialog]);
 
+  // Приклад використання мутацій:
+  // await deleteTrack({ variables: { id: trackId } });
+  // await updateTrack({ variables: { id: trackId, data: updateData } });
+  // await deleteMultipleTracks({ variables: { ids: selectedIds } });
+  // await uploadAudioFile({ variables: { id: trackId, file } });
+  // await deleteAudioFile({ variables: { id: trackId } });
+
   const handleUploadFile = useCallback(async (id: TrackIdType, file: File) => {
-    uploadAudioFile({ variables: { id, file } });
+    await uploadAudioFile({ variables: { id, file } });
   }, [uploadAudioFile]);
 
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,28 +91,21 @@ export function useTrackActions(queryParams: QueryParams) {
   }, [clearSearchTerms]);
 
   return {
-    // Track selection
     handleSelectTrack,
     handleDeselectTrack,
-    
-    // Track actions
     handlePlayToggle,
     handleDeleteTrack,
     handleBulkDelete,
     handleUploadFile,
     handleDeleteFileWithConfirmation,
-    
-    // Search and filters
     handleSearchChange,
     handleArtistFilterChange,
     handleClearFilters,
-    
-    // Mutations (Apollo style)
-    createTrackMutation: { mutate: createTrack, isPending: creatingTrack },
-    updateTrackMutation: { mutate: updateTrack, isPending: updatingTrack },
-    deleteTrackMutation: { mutate: deleteTrack, isPending: deletingTrack },
-    deleteMultipleTracksMutation: { mutate: deleteMultipleTracks, isPending: deletingMultipleTracks },
-    uploadFileMutation: { mutate: uploadAudioFile, isPending: uploadingFile },
-    deleteFileMutation: { mutate: deleteAudioFile, isPending: deletingFile },
+    createTrack,
+    updateTrack,
+    deleteTrack,
+    deleteMultipleTracks,
+    uploadAudioFile,
+    deleteAudioFile,
   };
 } 

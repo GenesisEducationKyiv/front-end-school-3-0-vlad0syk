@@ -3,7 +3,6 @@ import { TRACKS_QUERY } from '../services/api/track';
 import { GENRES_QUERY } from '../services/api/genres';
 import { QueryParams } from '../types';
 
-// Тип для фільтрів пошуку
 interface SearchFilters {
   search?: string;
   genre?: string;
@@ -18,7 +17,6 @@ interface TracksQueryVariables {
 }
 
 export function useTracksQuery(params: QueryParams) {
-  // Формуємо sort і filters для GraphQL
   const { page, limit, sort, order, search, genre, artist } = params;
   const filters: SearchFilters = {};
   if (search) filters.search = search;

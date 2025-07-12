@@ -5,7 +5,7 @@ import SortSelect from './components/SortSelect/SortSelect';
 import CreateTrackModal from './components/modals/CreateTrackModal';
 import EditTrackModal from './components/modals/EditTrackModal';
 import ConfirmDialog from './components/modals/ConfirmDialog';
-import { SortOption } from './types';
+import { SortOption, CreateTrackDto, UpdateTrackDto, SortField, SortOrder } from './types';
 import { useFiltersState } from './hooks/useFiltersState';
 import { usePagination } from './hooks/usePagination';
 import { useTracksQuery, useGenresQuery } from './hooks/useTrackQueries';
@@ -15,10 +15,13 @@ import { useTrackStore } from './stores/trackStore';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-if (typeof window !== 'undefined' && ((window as any).Cypress || (window as any).PW_TEST)) {
-    const style = document.createElement('style');
-    style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
-    document.head.appendChild(style);
+if (typeof window !== 'undefined') {
+    const win = window as Window & { Cypress?: unknown; PW_TEST?: unknown };
+    if (win.Cypress || win.PW_TEST) {
+        const style = document.createElement('style');
+        style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
+        document.head.appendChild(style);
+    }
 }
 
 const SORT_OPTIONS: SortOption[] = [
@@ -29,6 +32,9 @@ const SORT_OPTIONS: SortOption[] = [
     { value: 'createdAt_desc', label: 'Дата додавання (новіші)' },
     { value: 'createdAt_asc', label: 'Дата додавання (старіші)' },
 ];
+
+const validSortFields: SortField[] = ['title', 'artist', 'album', 'createdAt'];
+const validSortOrders: SortOrder[] = ['asc', 'desc'];
 
 function App() {
     const {
@@ -79,8 +85,10 @@ function App() {
     } = useTrackActions(queryParams);
 
     const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const [sort, order] = event.target.value.split('_') as [string, string];
-        setSortAndOrder(sort as any, order as any);
+        const [sort, order] = event.target.value.split('_');
+        if (validSortFields.includes(sort as SortField) && validSortOrders.includes(order as SortOrder)) {
+            setSortAndOrder(sort as SortField, order as SortOrder);
+        }
     };
 
     const handleGenreFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
