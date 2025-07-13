@@ -41,7 +41,10 @@ export const uploadAudioFile = async ({ id, file }: { id: string; file: File }):
     mutation: UPLOAD_AUDIO_FILE_MUTATION,
     variables: { id, file },
   });
-  return data!.uploadTrackFile;
+  if (!data) {
+    throw new Error('Failed to upload audio file');
+  }
+  return data.uploadTrackFile;
 };
 
 export const deleteAudioFile = async (id: string): Promise<Track> => {
@@ -49,5 +52,8 @@ export const deleteAudioFile = async (id: string): Promise<Track> => {
     mutation: DELETE_AUDIO_FILE_MUTATION,
     variables: { id },
   });
-  return data!.deleteTrackFile;
+  if (!data) {
+    throw new Error('Failed to delete audio file');
+  }
+  return data.deleteTrackFile;
 };

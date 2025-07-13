@@ -366,11 +366,11 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
             ) : errorGenres ? (
               <p className="text-red-500 mb-2">Помилка завантаження жанрів</p>
             ) : (
-              <Controller
+                <Controller
                 name="genres"
                 control={control}
                 rules={{
-                  validate: ((val: string[] | undefined) => (Array.isArray(val) && val.length > 0) || 'Оберіть хоча б один жанр') as any,
+                  validate: (val: string[] | undefined) => (Array.isArray(val) && val.length > 0) || 'Оберіть хоча б один жанр',
                 }}
                 render={({ field }) => (
                   <div data-testid="genre-selector">

@@ -9,7 +9,7 @@ interface AudioPlayerProps {
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({ track, isPlaying, onPlayToggle }) => {
-  const { audioRef, audioProgress, audioSrc, handleTimeUpdate, handleAudioEnded } = useAudioPlayer(
+  const { audioRef, audioSrc, handleTimeUpdate, handleAudioEnded } = useAudioPlayer(
     track,
     isPlaying,
     onPlayToggle

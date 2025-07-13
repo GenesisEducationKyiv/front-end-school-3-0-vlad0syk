@@ -6,7 +6,12 @@ interface TrackListProps {
   data?: PaginatedResponse<Track>;
   loading?: boolean;
   error?: Error | null;
-  meta?: any;
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
   onPageChange?: (page: number) => void;
 }
 

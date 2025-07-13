@@ -9,6 +9,7 @@ vi.mock('../../lib/apollo-client', () => ({
   }
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockApolloClient = apolloClient as any;
 
 describe('Tracks API - Whitebox Tests', () => {

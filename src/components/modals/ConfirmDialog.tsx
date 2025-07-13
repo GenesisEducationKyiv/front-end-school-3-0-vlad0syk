@@ -49,7 +49,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 });
                 // Очищуємо вибрані треки після успішного видалення
                 clearSelections();
-                toast.success(`Успішно видалено ${trackIds!.length} треків!`);
+                toast.success(`Успішно видалено ${trackIds?.length || 0} треків!`);
             } else {
                 const id = trackId || (trackIds && trackIds[0]);
                 if (id) {
@@ -72,7 +72,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         return null;
     }
 
-    const trackCount = isMultipleDelete ? trackIds!.length : 1;
+    const trackCount = isMultipleDelete ? (trackIds?.length || 0) : 1;
     const title = trackCount > 1 ? `Видалити ${trackCount} треків?` : 'Видалити трек?';
     const confirmText = trackCount > 1 ? `Видалити ${trackCount} треків` : 'Видалити';
 
