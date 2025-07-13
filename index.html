@@ -1,15 +1,164 @@
 <!doctype html>
-<html lang="en">
+<html lang="uk">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Genesis project</title>
+
+  <!-- DNS prefetch for external resources -->
+  <link rel="dns-prefetch" href="//localhost:8000">
+
+  <!-- Preconnect to same origin for faster resource loading -->
+  <link rel="preconnect" href="/">
+
+  <!-- Preload critical resources -->
+  <link rel="preload" href="/src/index.css" as="style">
+  <link rel="preload" href="/src/main.tsx" as="script">
+
+  <!-- Critical CSS inline for faster LCP -->
+  <style>
+    /* Critical CSS for initial render */
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    #root {
+      min-height: 100vh;
+      background-color: #111827; /* bg-gray-900 */
+      color: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5;
+    }
+
+    /* Loading state optimization */
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 50vh;
+      padding: 2rem;
+    }
+
+    .loading-spinner {
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid #374151;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Prevent layout shift */
+    .track-item-skeleton {
+      background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 0.5rem;
+      height: 120px;
+      margin: 0.5rem 0;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Critical layout styles */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding: 1rem 0;
+    }
+
+    .title {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .search-container {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.75rem;
+      background-color: #374151;
+      border: 1px solid #4b5563;
+      border-radius: 0.5rem;
+      color: #ffffff;
+      font-size: 1rem;
+    }
+
+    .search-input::placeholder {
+      color: #9ca3af;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background-color: #3b82f6;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background-color: #2563eb;
+    }
+  </style>
+
+  <title>Genesis Music Tracks</title>
+  <meta name="description" content="Управління музичними треками - Genesis project">
+  
+  <!-- Open Graph for better social sharing -->
+  <meta property="og:title" content="Genesis Music Tracks">
+  <meta property="og:description" content="Управління музичними треками - Genesis project">
+  <meta property="og:type" content="website">
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Fallback loading state to prevent empty screen -->
+    <div class="container">
+      <div class="header">
+        <h1 class="title">Genesis Music Tracks</h1>
+      </div>
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

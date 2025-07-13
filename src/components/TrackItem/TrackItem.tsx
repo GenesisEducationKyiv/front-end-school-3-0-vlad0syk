@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, memo } from 'react';
 import { Track } from '../../types';
 import { useFileUpload } from '../../lib/useFileUpload';
 import { useAudioPlayer } from '../../lib/useAudioPlayer';
@@ -11,7 +11,7 @@ interface TrackItemProps {
     testId?: string;
 }
 
-const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
+const TrackItem: React.FC<TrackItemProps> = memo(({ track, testId }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { uploading, uploadFile } = useFileUpload();
     
@@ -76,6 +76,12 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
                         src={track.coverImage}
                         alt={`Cover for ${track.title}`}
                         className="w-full h-32 object-cover rounded"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                            // Hide broken images
+                            e.currentTarget.style.display = 'none';
+                        }}
                     />
                 </div>
             )}
@@ -173,6 +179,8 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
             />
         </div>
     );
-};
+});
+
+TrackItem.displayName = 'TrackItem';
 
 export default TrackItem;

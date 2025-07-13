@@ -1,4 +1,4 @@
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense, memo } from 'react';
 import { debounce } from 'lodash';
 import SearchInput from './components/SearchInput/SearchInput';
 import TrackList from './components/TrackList/TrackList';
@@ -13,11 +13,30 @@ import { useTrackStore } from './stores/trackStore';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-if (typeof window !== 'undefined' && ((window as any).Cypress || (window as any).PW_TEST)) {
-    const style = document.createElement('style');
-    style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
-    document.head.appendChild(style);
-}
+// Lazy load heavy components with better error handling
+const CreateTrackModal = React.lazy(() => 
+  import('./components/modals/CreateTrackModal').catch(() => ({
+    default: () => <div>Помилка завантаження модалки створення</div>
+  }))
+);
+const EditTrackModal = React.lazy(() => 
+  import('./components/modals/EditTrackModal').catch(() => ({
+    default: () => <div>Помилка завантаження модалки редагування</div>
+  }))
+);
+const ConfirmDialog = React.lazy(() => 
+  import('./components/modals/ConfirmDialog').catch(() => ({
+    default: () => <div>Помилка завантаження діалогу підтвердження</div>
+  }))
+);
+
+// Loading fallback component
+const LoadingFallback = memo(() => (
+  <div className="flex items-center justify-center p-4">
+    <div className="loading-spinner"></div>
+  </div>
+));
+LoadingFallback.displayName = 'LoadingFallback';
 
 const SORT_OPTIONS: SortOption[] = [
     { value: 'title_asc', label: 'Назва (А-Я)' },
@@ -28,9 +47,11 @@ const SORT_OPTIONS: SortOption[] = [
     { value: 'createdAt_asc', label: 'Дата додавання (старіші)' },
 ];
 
-const CreateTrackModal = React.lazy(() => import('./components/modals/CreateTrackModal'));
-const EditTrackModal = React.lazy(() => import('./components/modals/EditTrackModal'));
-const ConfirmDialog = React.lazy(() => import('./components/modals/ConfirmDialog'));
+if (typeof window !== 'undefined' && ((window as any).Cypress || (window as any).PW_TEST)) {
+    const style = document.createElement('style');
+    style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
+    document.head.appendChild(style);
+}
 
 function App() {
     const {
@@ -280,7 +301,7 @@ function App() {
                 </div>
             )}
 
-            <Suspense fallback={null}>
+            <Suspense fallback={<LoadingFallback />}>
                 {isCreateModalOpen && (
                     <CreateTrackModal
                         isOpen={isCreateModalOpen}

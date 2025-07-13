@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import TrackItem from '../TrackItem/TrackItem';
 import { Track } from '../../types';
 
@@ -7,7 +7,7 @@ interface TrackListProps {
   isLoading: boolean;
 }
 
-const TrackList: React.FC<TrackListProps> = ({
+const TrackList: React.FC<TrackListProps> = memo(({
   tracks,
   isLoading,
 }) => {
@@ -38,6 +38,8 @@ const TrackList: React.FC<TrackListProps> = ({
       ))}
     </div>
   );
-};
+});
+
+TrackList.displayName = 'TrackList';
 
 export default TrackList;
