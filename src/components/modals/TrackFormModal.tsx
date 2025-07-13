@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { gql, useMutation, useQuery } from '@apollo/client';
+import { toast } from 'react-toastify';
 import { CreateTrackDto, UpdateTrackDto, Genre, Track } from '../../types';
 
 const CREATE_TRACK_MUTATION = gql`
@@ -37,9 +38,9 @@ const UPDATE_TRACK_MUTATION = gql`
   }
 `;
 
-const TRACK_BY_ID_QUERY = gql`
-  query Track($id: ID!) {
-    track(id: $id) {
+const TRACK_BY_SLUG_QUERY = gql`
+  query TrackBySlug($slug: String!) {
+    trackBySlug(slug: $slug) {
       id
       title
       artist
@@ -65,7 +66,7 @@ interface TrackFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: CreateTrackDto | UpdateTrackDto) => void;
-  trackToEditId?: string | null;
+  trackToEditSlug?: string | null;
 }
 
 const GenreMultiSelect = ({ options, value, onChange, disabled }: { options: string[]; value: string[]; onChange: (val: string[]) => void; disabled?: boolean }) => {
@@ -108,24 +109,39 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  trackToEditId,
+  trackToEditSlug,
 }) => {
   const isEditMode = mode === 'edit';
 
   const { data: genresData, loading: loadingGenres, error: errorGenres } = useQuery<{ genres: Genre[] }>(GENRES_QUERY);
 
-  const { data: trackData, loading: loadingTrack } = useQuery<{ track: Track }>(
-    TRACK_BY_ID_QUERY,
+  const { data: trackData, loading: loadingTrack, error: trackError } = useQuery<{ trackBySlug: Track }>(
+    TRACK_BY_SLUG_QUERY,
     {
-      variables: { id: trackToEditId },
-      skip: !isEditMode || !trackToEditId,
+      variables: { slug: trackToEditSlug },
+      skip: !isEditMode || !trackToEditSlug,
+      fetchPolicy: 'network-only', // Force network request
+      errorPolicy: 'all', // Return both data and errors
+      onError: (error) => {
+        console.error('Error loading track for edit:', error);
+        console.error('Track slug:', trackToEditSlug);
+        console.error('GraphQL errors:', error.graphQLErrors);
+        console.error('Network error:', error.networkError);
+      },
+      onCompleted: (data) => {
+        console.log('Track loaded for edit:', data);
+        console.log('Track slug used:', trackToEditSlug);
+        if (!data.trackBySlug) {
+          console.warn('No track found with slug:', trackToEditSlug);
+        }
+      },
     }
   );
 
   const [createTrack, { loading: creating }] = useMutation(CREATE_TRACK_MUTATION);
   const [updateTrack, { loading: updating }] = useMutation(UPDATE_TRACK_MUTATION);
 
-  const { control, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateTrackDto | UpdateTrackDto>({
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<CreateTrackDto | UpdateTrackDto>({
     defaultValues: {
       title: '',
       artist: '',
@@ -136,27 +152,46 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
   });
 
   useEffect(() => {
-    if (isEditMode && trackData?.track) {
-      const { title, artist, album, genres, coverImage } = trackData.track;
+    if (isEditMode && trackData?.trackBySlug) {
+      const { title, artist, album, genres, coverImage } = trackData.trackBySlug;
       reset({ title, artist, album: album || '', genres: genres || [], coverImage: coverImage || '' });
     }
   }, [isEditMode, trackData, reset]);
 
   const onFormSubmit = async (formData: CreateTrackDto | UpdateTrackDto) => {
-    if (isEditMode && trackData?.track) {
-      await updateTrack({
-        variables: { id: trackData.track.id, input: formData },
-        refetchQueries: ['Tracks'],
-      });
-    } else {
-      await createTrack({
-        variables: { input: formData },
-        refetchQueries: ['Tracks'],
-      });
-      reset();
+    try {
+      if (isEditMode && trackData?.trackBySlug) {
+        const result = await updateTrack({
+          variables: { id: trackData.trackBySlug.id, input: formData },
+          update: (cache) => {
+            // Evict all tracks queries to force refetch
+            cache.evict({ fieldName: 'tracks' });
+            cache.gc();
+          },
+        });
+        console.log('Update mutation result:', result);
+        toast.success('Трек успішно оновлено!');
+      } else {
+        const result = await createTrack({
+          variables: { input: formData },
+          update: (cache, { data }) => {
+            // Evict all tracks queries to force refetch
+            cache.evict({ fieldName: 'tracks' });
+            cache.gc();
+            console.log('Created track:', data?.createTrack);
+          },
+        });
+        console.log('Create mutation result:', result);
+        toast.success('Трек успішно створено!');
+        reset();
+      }
+      if (onSubmit) onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Mutation error:', error);
+      const errorMessage = isEditMode ? 'Помилка при оновленні треку' : 'Помилка при створенні треку';
+      toast.error(errorMessage);
     }
-    if (onSubmit) onSubmit(formData);
-    onClose();
   };
 
   useEffect(() => {
@@ -165,7 +200,7 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
     }
   }, [isOpen, reset]);
 
-  if (!isOpen || (isEditMode && !trackToEditId)) return null;
+  if (!isOpen || (isEditMode && !trackToEditSlug)) return null;
 
   if (isEditMode && loadingTrack) {
     return (
@@ -180,11 +215,18 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
     );
   }
 
-  if (isEditMode && !loadingTrack && !trackData?.track) {
+  if (isEditMode && !loadingTrack && (trackError || !trackData?.trackBySlug)) {
     return (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center p-4 animate-fade-in">
         <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-2xl shadow-2xl p-8 w-full max-w-lg relative animate-modal-pop overflow-y-auto max-h-[90vh] flex flex-col items-center">
-          <h2 className="text-2xl font-bold mb-4 text-center text-red-600">Трек не знайдено</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center text-red-600">
+            {trackError ? 'Помилка завантаження' : 'Трек не знайдено'}
+          </h2>
+          {trackError && (
+            <p className="text-gray-600 dark:text-gray-400 mb-4 text-center">
+              {trackError.message}
+            </p>
+          )}
           <button
             className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
             onClick={onClose}
@@ -331,12 +373,14 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
                   validate: ((val: string[] | undefined) => (Array.isArray(val) && val.length > 0) || 'Оберіть хоча б один жанр') as any,
                 }}
                 render={({ field }) => (
-                  <GenreMultiSelect
-                    options={genresData?.genres || []}
-                    value={field.value || []}
-                    onChange={field.onChange}
-                    disabled={creating || updating}
-                  />
+                  <div data-testid="genre-selector">
+                    <GenreMultiSelect
+                      options={genresData?.genres || []}
+                      value={field.value || []}
+                      onChange={field.onChange}
+                      disabled={creating || updating}
+                    />
+                  </div>
                 )}
               />
             )}
@@ -347,6 +391,7 @@ export const TrackFormModal: React.FC<TrackFormModalProps> = ({
 
           <button
             type="submit"
+            data-testid="submit-button"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded disabled:opacity-50"
             disabled={creating || updating}
           >

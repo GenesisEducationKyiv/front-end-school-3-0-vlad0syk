@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Complete User Workflow - E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     try {
-      await page.goto('http://localhost:3000/', { timeout: 5000 });
+      await page.goto('http://localhost:3001/', { timeout: 5000 });
       await page.waitForLoadState('networkidle', { timeout: 10000 });
     } catch {
       test.skip(true, 'Development server is not running. Please start it with "npm run dev"');
@@ -47,17 +47,20 @@ test.describe('Complete User Workflow - E2E Tests', () => {
 
       const titleInput = page.getByLabel('Назва треку');
       const artistInput = page.getByLabel('Виконавець');
-      const genreSelect = page.getByTestId('genre-selector');
 
       await titleInput.fill(`Pagination Test Track ${i}`);
       await artistInput.fill(`Pagination Test Artist ${i}`);
       
-      const genreOptions = await genreSelect.locator('option').count();
-      if (genreOptions > 1) {
-        await genreSelect.selectOption('Rock');
+      // Select genre using the multi-select buttons
+      const genreSelector = page.getByTestId('genre-selector');
+      const rockGenreButton = genreSelector.locator('button', { hasText: 'Rock' });
+      if (await rockGenreButton.isVisible()) {
+        await rockGenreButton.click();
       }
 
       const submitButton = page.getByTestId('submit-button');
+      await expect(submitButton).toBeVisible();
+      await expect(submitButton).toBeEnabled();
       await submitButton.click();
 
       const modalTitle = page.getByRole('heading', { name: 'Створити новий трек' });
@@ -115,6 +118,7 @@ test.describe('Complete User Workflow - E2E Tests', () => {
     await createButton.click();
 
     const submitButton = page.getByTestId('submit-button');
+    await expect(submitButton).toBeVisible();
     await submitButton.click();
 
     await page.waitForTimeout(1000);
@@ -186,27 +190,30 @@ test.describe('Complete User Workflow - E2E Tests', () => {
 
     const titleInput = page.getByLabel('Назва треку');
     const artistInput = page.getByLabel('Виконавець');
-    const genreSelect = page.getByTestId('genre-selector');
 
     await titleInput.fill('Upload Test Track');
     await artistInput.fill('Upload Test Artist');
     
-    const genreOptions = await genreSelect.locator('option').count();
-    if (genreOptions > 1) {
-      await genreSelect.selectOption('Rock');
+    // Select genre using the multi-select buttons
+    const genreSelector = page.getByTestId('genre-selector');
+    const rockGenreButton = genreSelector.locator('button', { hasText: 'Rock' });
+    if (await rockGenreButton.isVisible()) {
+      await rockGenreButton.click();
     }
 
     const submitButton = page.getByTestId('submit-button');
+    await expect(submitButton).toBeVisible();
+    await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
     const modalTitle = page.getByRole('heading', { name: 'Створити новий трек' });
     await expect(modalTitle).not.toBeVisible({ timeout: 10000 });
     
-    await page.waitForTimeout(1000);
-    await page.waitForTimeout(2000);
+    // Wait for the track to be created and appear in the list
+    await page.waitForTimeout(3000);
 
     const trackItem = page.locator('[data-testid*="track-item"]').filter({ hasText: 'Upload Test Track' }).first();
-    await expect(trackItem).toBeVisible({ timeout: 10000 });
+    await expect(trackItem).toBeVisible({ timeout: 15000 });
 
     const uploadButton = trackItem.locator('[data-testid*="upload"]');
     if (await uploadButton.isVisible()) {
@@ -238,27 +245,30 @@ test.describe('Complete User Workflow - E2E Tests', () => {
 
     const titleInput = page.getByLabel('Назва треку');
     const artistInput = page.getByLabel('Виконавець');
-    const genreSelect = page.getByTestId('genre-selector');
 
     await titleInput.fill('Audio Test Track');
     await artistInput.fill('Audio Test Artist');
     
-    const genreOptions = await genreSelect.locator('option').count();
-    if (genreOptions > 1) {
-      await genreSelect.selectOption('Rock');
+    // Select genre using the multi-select buttons
+    const genreSelector = page.getByTestId('genre-selector');
+    const rockGenreButton = genreSelector.locator('button', { hasText: 'Rock' });
+    if (await rockGenreButton.isVisible()) {
+      await rockGenreButton.click();
     }
 
     const submitButton = page.getByTestId('submit-button');
+    await expect(submitButton).toBeVisible();
+    await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
     const modalTitle = page.getByRole('heading', { name: 'Створити новий трек' });
     await expect(modalTitle).not.toBeVisible({ timeout: 10000 });
     
-    await page.waitForTimeout(1000);
-    await page.waitForTimeout(2000);
+    // Wait for the track to be created and appear in the list
+    await page.waitForTimeout(3000);
 
     const trackItem = page.locator('[data-testid*="track-item"]').filter({ hasText: 'Audio Test Track' }).first();
-    await expect(trackItem).toBeVisible({ timeout: 10000 });
+    await expect(trackItem).toBeVisible({ timeout: 15000 });
 
     const playButton = trackItem.locator('[data-testid*="play-button"]');
     if (await playButton.isVisible()) {

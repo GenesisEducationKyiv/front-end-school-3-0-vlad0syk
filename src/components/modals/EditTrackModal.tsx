@@ -4,15 +4,15 @@ import TrackFormModal from './TrackFormModal';
 interface EditTrackModalProps {
     isOpen: boolean;
     onClose: () => void;
-    trackToEditId: string;
+    trackToEditSlug: string;
 }
 
-const EditTrackModal: React.FC<EditTrackModalProps> = ({ isOpen, onClose, trackToEditId }) => (
+const EditTrackModal: React.FC<EditTrackModalProps> = ({ isOpen, onClose, trackToEditSlug }) => (
     <TrackFormModal
         mode="edit"
         isOpen={isOpen}
         onClose={onClose}
-        trackToEditId={trackToEditId}
+        trackToEditSlug={trackToEditSlug}
     />
 );
 

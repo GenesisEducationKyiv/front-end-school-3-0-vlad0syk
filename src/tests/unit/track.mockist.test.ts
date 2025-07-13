@@ -1,35 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchTracks } from '../../services/api/track';
-import { handleResponseWithZod } from '../../services/api/base';
-import { ok, err } from 'neverthrow';
+import { apolloClient } from '../../lib/apollo-client';
 
-vi.mock('../../services/api/base', () => ({
-  handleResponseWithZod: vi.fn(),
-  API_BASE_URL: 'http://localhost:3000'
+vi.mock('../../lib/apollo-client', () => ({
+  apolloClient: {
+    query: vi.fn(),
+    mutate: vi.fn(),
+  }
 }));
 
-const mockedHandleResponseWithZod = vi.mocked(handleResponseWithZod);
+const mockApolloClient = apolloClient as any;
 
 describe('Tracks API - Whitebox Tests', () => {
-    const mockFetch = vi.fn();
-
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.stubGlobal('fetch', mockFetch);
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
-        vi.unstubAllGlobals();
+        vi.clearAllMocks();
     });
 
     describe('Whitebox Tests', () => {
     describe('fetchTracks - internal implementation', () => {
-      it('should construct correct URL with all query parameters', async () => {
-        mockedHandleResponseWithZod.mockResolvedValue(ok({ 
-          data: [], 
-          meta: { page: 1, limit: 10, total: 0, totalPages: 0 } 
-        }));
+      it('should call apolloClient.query with correct variables for all parameters', async () => {
+        mockApolloClient.query.mockResolvedValue({
+          data: {
+            tracks: {
+              data: [], 
+              meta: { page: 1, limit: 10, total: 0, totalPages: 0 }
+            }
+          }
+        });
         
         const params = {
           page: 2,
@@ -43,46 +44,66 @@ describe('Tracks API - Whitebox Tests', () => {
 
         await fetchTracks(params);
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3000/api/tracks?page=2&limit=20&sort=title&order=desc&search=rock+music&genre=Rock&artist=Queen'
-        );
+        expect(mockApolloClient.query).toHaveBeenCalledWith({
+          query: expect.any(Object), // GraphQL query object
+          variables: params,
+          fetchPolicy: 'network-only'
+        });
       });
 
-      it('should handle empty query parameters correctly', async () => {
-        mockedHandleResponseWithZod.mockResolvedValue(ok({ 
-          data: [], 
-          meta: { page: 1, limit: 10, total: 0, totalPages: 0 } 
-        }));
+      it('should call apolloClient.query with empty variables when no parameters provided', async () => {
+        mockApolloClient.query.mockResolvedValue({
+          data: {
+            tracks: {
+              data: [], 
+              meta: { page: 1, limit: 10, total: 0, totalPages: 0 }
+            }
+          }
+        });
 
         await fetchTracks({});
 
-        expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/api/tracks?');
+        expect(mockApolloClient.query).toHaveBeenCalledWith({
+          query: expect.any(Object),
+          variables: {},
+          fetchPolicy: 'network-only'
+        });
       });
 
-      it('should skip undefined parameters in URL construction', async () => {
-        mockedHandleResponseWithZod.mockResolvedValue(ok({ 
-          data: [], 
-          meta: { page: 1, limit: 10, total: 0, totalPages: 0 } 
-        }));
-        
+      it('should call apolloClient.query with only defined parameters', async () => {
+        mockApolloClient.query.mockResolvedValue({
+          data: {
+            tracks: {
+              data: [], 
+              meta: { page: 1, limit: 10, total: 0, totalPages: 0 }
+            }
+          }
+        });
+
         const params = {
           page: 1,
-          search: 'test',
+          search: 'test'
         };
 
         await fetchTracks(params);
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3000/api/tracks?page=1&search=test'
-        );
+        expect(mockApolloClient.query).toHaveBeenCalledWith({
+          query: expect.any(Object),
+          variables: params,
+          fetchPolicy: 'network-only'
+        });
       });
 
-      it('should properly encode special characters in search', async () => {
-        mockedHandleResponseWithZod.mockResolvedValue(ok({ 
-          data: [], 
-          meta: { page: 1, limit: 10, total: 0, totalPages: 0 } 
-        }));
-        
+      it('should handle special characters in parameters correctly', async () => {
+        mockApolloClient.query.mockResolvedValue({
+          data: {
+            tracks: {
+              data: [], 
+              meta: { page: 1, limit: 10, total: 0, totalPages: 0 }
+            }
+          }
+        });
+
         const params = {
           search: 'rock & roll',
           artist: 'AC/DC'
@@ -90,16 +111,17 @@ describe('Tracks API - Whitebox Tests', () => {
 
         await fetchTracks(params);
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3000/api/tracks?search=rock+%26+roll&artist=AC%2FDC'
-        );
+        expect(mockApolloClient.query).toHaveBeenCalledWith({
+          query: expect.any(Object),
+          variables: params,
+          fetchPolicy: 'network-only'
+        });
       });
     });
 
     describe('Error handling - internal implementation', () => {
-      it('should propagate errors from handleResponseWithZod', async () => {
-        const errorResponse = err(new Error('Network error'));
-        mockedHandleResponseWithZod.mockResolvedValue(errorResponse);
+      it('should handle GraphQL errors correctly', async () => {
+        mockApolloClient.query.mockRejectedValue(new Error('Network error'));
 
         const result = await fetchTracks({});
 
@@ -110,11 +132,10 @@ describe('Tracks API - Whitebox Tests', () => {
         }
       });
 
-      it('should handle API errors correctly', async () => {
-        const apiError = err(new Error('Not found'));
-        mockedHandleResponseWithZod.mockResolvedValue(apiError);
+      it('should handle Apollo Client errors correctly', async () => {
+        mockApolloClient.query.mockRejectedValue(new Error('Not found'));
 
-        const result = await fetchTracks({});
+        const result = await fetchTracks({ search: 'nonexistent' });
 
         expect(result.isErr()).toBe(true);
         if (result.isErr() && result.error) {

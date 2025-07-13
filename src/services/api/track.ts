@@ -3,8 +3,24 @@ import { apolloClient } from '../../lib/apollo-client';
 import { QueryParams, PaginatedResponse, Track, CreateTrackDto, UpdateTrackDto, BatchDeleteResponse, Result, ok, err } from '../../types';
 
 export const TRACKS_QUERY = gql`
-  query Tracks($page: Int, $limit: Int, $sort: TrackSort, $filters: TrackFilters) {
-    tracks(page: $page, limit: $limit, sort: $sort, filters: $filters) {
+  query Tracks(
+    $page: Int
+    $limit: Int
+    $sort: String
+    $order: String
+    $search: String
+    $genre: String
+    $artist: String
+  ) {
+    tracks(
+      page: $page
+      limit: $limit
+      sort: $sort
+      order: $order
+      search: $search
+      genre: $genre
+      artist: $artist
+    ) {
       data {
         id
         title
@@ -27,9 +43,9 @@ export const TRACKS_QUERY = gql`
   }
 `;
 
-export const TRACK_BY_ID_QUERY = gql`
-  query Track($id: ID!) {
-    track(id: $id) {
+export const TRACK_BY_SLUG_QUERY_V2 = gql`
+  query Track($slug: String!) {
+    track(slug: $slug) {
       id
       title
       artist
@@ -102,8 +118,8 @@ export const DELETE_TRACK_MUTATION = gql`
 `;
 
 export const BATCH_DELETE_TRACKS_MUTATION = gql`
-  mutation DeleteMultipleTracks($ids: [ID!]!) {
-    deleteMultipleTracks(ids: $ids) {
+  mutation DeleteTracks($ids: [ID!]!) {
+    deleteTracks(ids: $ids) {
       success
       failed
     }
@@ -123,11 +139,11 @@ export const fetchTracks = async (params: QueryParams): Promise<Result<Paginated
   }
 };
 
-export const fetchTrackById = async (id: string): Promise<Result<Track>> => {
+export const fetchTrackBySlugAlt = async (slug: string): Promise<Result<Track>> => {
   try {
     const { data } = await apolloClient.query<{ track: Track }>({
-      query: TRACK_BY_ID_QUERY,
-      variables: { id },
+      query: TRACK_BY_SLUG_QUERY_V2,
+      variables: { slug },
       fetchPolicy: 'network-only',
     });
     return ok(data.track);
@@ -199,12 +215,12 @@ export const deleteTrack = async (id: string): Promise<Result<boolean>> => {
 
 export const deleteMultipleTracks = async (ids: string[]): Promise<Result<BatchDeleteResponse>> => {
   try {
-    const { data } = await apolloClient.mutate<{ deleteMultipleTracks: BatchDeleteResponse }>({
+    const { data } = await apolloClient.mutate<{ deleteTracks: BatchDeleteResponse }>({
       mutation: BATCH_DELETE_TRACKS_MUTATION,
       variables: { ids },
     });
-    if (data?.deleteMultipleTracks) {
-      return ok(data.deleteMultipleTracks);
+    if (data?.deleteTracks) {
+      return ok(data.deleteTracks);
     } else {
       return err(new Error('Failed to delete multiple tracks'));
     }

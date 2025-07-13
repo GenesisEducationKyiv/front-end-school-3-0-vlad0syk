@@ -1,20 +1,14 @@
-<<<<<<< HEAD
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchTracks, createTrack, updateTrack, deleteTrack, deleteMultipleTracks } from '../../services/api/track';
 import { Track, CreateTrackDto, UpdateTrackDto, isOk, isErr } from '../../types';
-=======
-import { test, expect, beforeEach } from 'vitest';
-import { 
-  fetchTracks,
-  createTrack,
-  updateTrack,
-  deleteTrack,
-  deleteMultipleTracks
-} from '../../services/api/track';
-import { CreateTrackDto, UpdateTrackDto, QueryParams } from '../../types';
-import { vi } from 'vitest';
-import type { Track } from '../../types';
->>>>>>> hw9
+import { apolloClient } from '../../lib/apollo-client';
+
+vi.mock('../../lib/apollo-client', () => ({
+  apolloClient: {
+    query: vi.fn(),
+    mutate: vi.fn(),
+  }
+}));
 
 const testTrack: CreateTrackDto = {
   title: 'Test Song',
@@ -22,6 +16,18 @@ const testTrack: CreateTrackDto = {
   album: 'Test Album',
   genres: ['rock', 'pop'],
   coverImage: 'https://example.com/cover.jpg'
+};
+
+const mockTrack: Track = {
+  id: '1',
+  title: 'Test Song',
+  artist: 'Test Artist',
+  album: 'Test Album',
+  genres: ['rock', 'pop'],
+  coverImage: 'https://example.com/cover.jpg',
+  slug: 'test-song',
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
 };
 
 let createdTrackId: string | null = null;
@@ -34,386 +40,38 @@ const cleanup = async () => {
 };
 
 beforeEach(() => {
-<<<<<<< HEAD
-  let tracks: Track[] = [];
-  let nextId = 1;
-=======
-  // Зберігаємо створені треки в пам'яті для імітації CRUD
-  let tracks: Track[] = [];
-  let nextId = 1;
+  vi.clearAllMocks();
 
-  vi.stubGlobal('fetch', vi.fn(async (input, init) => {
-    const url = typeof input === 'string' ? input : input.url;
-    const method = (init && init.method) ? init.method.toUpperCase() : 'GET';
-
-    // --- CREATE ---
-    if (url.endsWith('/tracks') && method === 'POST') {
-      const body = JSON.parse(init?.body || '{}');
-      if (!body.title || body.title === '') {
-        return {
-          ok: false,
-          json: async () => ({
-            error: 'Title is required',
-            statusCode: 400,
-            details: ['Title']
-          }),
-          status: 400,
-          headers: { get: () => 'application/json' },
-          text: async () => '',
-        };
-      }
-      const newTrack = {
-        id: String(nextId++),
-        title: body.title,
-        artist: body.artist,
-        album: body.album ?? '',
-        genres: body.genres ?? [],
-        coverImage: body.coverImage ?? '',
-        slug: body.title.toLowerCase().replace(/\s+/g, '-'),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      tracks.push(newTrack);
-      return {
-        ok: true,
-        json: async () => newTrack,
-        status: 201,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    // --- UPDATE ---
-    if (url.match(/\/tracks\/[^/]+$/) && method === 'PUT') {
-      const id = url.split('/').pop();
-      const body = JSON.parse(init?.body || '{}');
-      const idx = tracks.findIndex(t => t.id === id);
-      if (id === 'fake-id' || idx === -1) {
-        return {
-          ok: false,
-          json: async () => ({
-            error: 'Track not found',
-            statusCode: 404,
-            details: ['Not found']
-          }),
-          status: 404,
-          headers: { get: () => 'application/json' },
-          text: async () => '',
-        };
-      }
-      tracks[idx] = {
-        ...tracks[idx],
-        ...body,
-        updatedAt: new Date().toISOString(),
-        slug: (body.title ?? tracks[idx].title).toLowerCase().replace(/\s+/g, '-'),
-      };
-      return {
-        ok: true,
-        json: async () => tracks[idx],
-        status: 200,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    // --- DELETE ---
-    if (url.match(/\/tracks\/[^/]+$/) && method === 'DELETE') {
-      const id = url.split('/').pop();
-      if (id === 'fake-id' || !tracks.find(t => t.id === id)) {
-        return {
-          ok: false,
-          json: async () => ({
-            error: 'Track not found',
-            statusCode: 404,
-            details: ['Not found']
-          }),
-          status: 404,
-          headers: { get: () => 'application/json' },
-          text: async () => '',
-        };
-      }
-      tracks = tracks.filter(t => t.id !== id);
-      return {
-        ok: true,
-        json: async () => ({}),
-        status: 204,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    // --- BATCH DELETE ---
-    if (url.endsWith('/tracks/delete') && method === 'POST') {
-      const body = JSON.parse(init?.body || '{}');
-      const ids = body.ids ?? [];
-      const success = ids.filter((id: string) => id !== 'fake-id' && tracks.find(t => t.id === id));
-      const failed = ids.filter((id: string) => id === 'fake-id' || !tracks.find(t => t.id === id));
-      tracks = tracks.filter(t => !success.includes(t.id));
-      return {
-        ok: true,
-        json: async () => ({
-          success,
-          failed,
-        }),
-        status: 200,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    // --- GET (fetchTracks) ---
-    if (url.includes('/tracks') && method === 'GET') {
-      const params = new URL(url, 'http://localhost').searchParams;
-      let data = [...tracks];
-
-      // search by title
-      if (params.has('search')) {
-        const search = params.get('search');
-        data = data.filter(t => t.title === search);
-      }
-      // filter by genre
-      if (params.has('genre')) {
-        const genre = params.get('genre');
-        if (genre !== null) {
-          data = data.filter(t => t.genres.includes(genre));
+  apolloClient.query = vi.fn().mockResolvedValue({
+    data: {
+      tracks: {
+        data: [mockTrack],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
         }
       }
-      // pagination
-      const page = Number(params.get('page') || 1);
-      const limit = Number(params.get('limit') || 10);
-      const start = (page - 1) * limit;
-      const paged = data.slice(start, start + limit);
-
-      return {
-        ok: true,
-        json: async () => ({
-          data: paged,
-          meta: {
-            total: data.length,
-            page, 
-            limit,
-            totalPages: Math.ceil(data.length / limit) || 1,
-          }
-        }),
-        status: 200,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
     }
+  });
 
-    // За замовчуванням
-    return {
-      ok: true,
-      json: async () => ({}),
-      status: 200,
-      headers: { get: () => 'application/json' },
-      text: async () => '',
-    };
-  }));
-
-  // Очищення "бази" перед кожним тестом
-  tracks = [
-    {
-      id: '1',
-      title: 'Test Song',
-      artist: 'Test Artist',
-      album: 'Test Album',
-      genres: ['rock', 'pop'],
-      coverImage: 'https://example.com/cover.jpg',
-      slug: 'test-song',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-  ];
-  nextId = 2;
-
-  cleanup();
-});
->>>>>>> hw9
-
-  vi.stubGlobal('fetch', vi.fn(async (input, init) => {
-    const url = typeof input === 'string' ? input : input.url;
-    const method = (init && init.method) ? init.method.toUpperCase() : 'GET';
-
-    if (url.endsWith('/tracks') && method === 'POST') {
-      const body = JSON.parse(init?.body || '{}');
-      if (!body.title || body.title === '') {
-        return {
-          ok: false,
-          json: async () => ({
-            error: 'Title is required',
-            statusCode: 400,
-            details: ['Title']
-          }),
-          status: 400,
-          headers: { get: () => 'application/json' },
-          text: async () => '',
-        };
-      }
-      const newTrack = {
-        id: String(nextId++),
-        title: body.title,
-        artist: body.artist,
-        album: body.album ?? '',
-        genres: body.genres ?? [],
-        coverImage: body.coverImage ?? '',
-        slug: body.title.toLowerCase().replace(/\s+/g, '-'),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      tracks.push(newTrack);
-      return {
-        ok: true,
-        json: async () => newTrack,
-        status: 201,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    if (url.match(/\/tracks\/[^/]+$/) && method === 'PUT') {
-      const id = url.split('/').pop();
-      const body = JSON.parse(init?.body || '{}');
-      const idx = tracks.findIndex(t => t.id === id);
-      if (id === 'fake-id' || idx === -1) {
-        return {
-          ok: false,
-          json: async () => ({
-            error: 'Track not found',
-            statusCode: 404,
-            details: ['Not found']
-          }),
-          status: 404,
-          headers: { get: () => 'application/json' },
-          text: async () => '',
-        };
-      }
-      tracks[idx] = {
-        ...tracks[idx],
-        ...body,
-        updatedAt: new Date().toISOString(),
-        slug: (body.title ?? tracks[idx].title).toLowerCase().replace(/\s+/g, '-'),
-      };
-      return {
-        ok: true,
-        json: async () => tracks[idx],
-        status: 200,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    if (url.match(/\/tracks\/[^/]+$/) && method === 'DELETE') {
-      const id = url.split('/').pop();
-      if (id === 'fake-id' || !tracks.find(t => t.id === id)) {
-        return {
-          ok: false,
-          json: async () => ({
-            error: 'Track not found',
-            statusCode: 404,
-            details: ['Not found']
-          }),
-          status: 404,
-          headers: { get: () => 'application/json' },
-          text: async () => '',
-        };
-      }
-      tracks = tracks.filter(t => t.id !== id);
-      return {
-        ok: true,
-        json: async () => ({}),
-        status: 204,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    if (url.endsWith('/tracks/delete') && method === 'POST') {
-      const body = JSON.parse(init?.body || '{}');
-      const ids = body.ids ?? [];
-      const success = ids.filter((id: string) => id !== 'fake-id' && tracks.find(t => t.id === id));
-      const failed = ids.filter((id: string) => id === 'fake-id' || !tracks.find(t => t.id === id));
-      tracks = tracks.filter(t => !success.includes(t.id));
-      return {
-        ok: true,
-        json: async () => ({
-          success,
-          failed,
-        }),
-        status: 200,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    if (url.includes('/tracks') && method === 'GET') {
-      const params = new URL(url, 'http://localhost').searchParams;
-      let data = [...tracks];
-
-      if (params.has('search')) {
-        const search = params.get('search');
-        data = data.filter(t => t.title === search);
-      }
-      if (params.has('genre')) {
-        const genre = params.get('genre');
-        if (genre !== null) {
-          data = data.filter(t => t.genres.includes(genre));
-        }
-      }
-      const page = Number(params.get('page') || 1);
-      const limit = Number(params.get('limit') || 10);
-      const start = (page - 1) * limit;
-      const paged = data.slice(start, start + limit);
-
-      return {
-        ok: true,
-        json: async () => ({
-          data: paged,
-          meta: {
-            total: data.length,
-            page, 
-            limit,
-            totalPages: Math.ceil(data.length / limit) || 1,
-          }
-        }),
-        status: 200,
-        headers: { get: () => 'application/json' },
-        text: async () => '',
-      };
-    }
-
-    return {
-      ok: true,
-      json: async () => ({}),
-      status: 200,
-      headers: { get: () => 'application/json' },
-      text: async () => '',
-    };
-  }));
-
-  tracks = [
-    {
-      id: '1',
-      title: 'Test Song',
-      artist: 'Test Artist',
-      album: 'Test Album',
-      genres: ['rock', 'pop'],
-      coverImage: 'https://example.com/cover.jpg',
-      slug: 'test-song',
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    }
-  ];
+  apolloClient.mutate = vi.fn();
 });
 
 afterEach(async () => {
   await cleanup();
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 
 describe('Track API - Classicist Tests', () => {
   test('should create a track successfully', async () => {
+    apolloClient.mutate = vi.fn().mockResolvedValue({
+      data: {
+        createTrack: { ...mockTrack, id: '2' }
+      }
+    });
+
     const result = await createTrack(testTrack);
     
     expect(isOk(result)).toBe(true);
@@ -426,6 +84,8 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should fail to create track with empty title', async () => {
+    apolloClient.mutate = vi.fn().mockRejectedValue(new Error('Title is required'));
+
     const invalidTrack = { ...testTrack, title: '' };
     const result = await createTrack(invalidTrack);
     
@@ -437,6 +97,24 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should update a track successfully', async () => {
+    apolloClient.mutate = vi.fn()
+      .mockResolvedValueOnce({
+        data: {
+          createTrack: { ...mockTrack, id: '3' }
+        }
+      })
+      .mockResolvedValueOnce({
+        data: {
+          updateTrack: { 
+            ...mockTrack, 
+            id: '3',
+            title: 'Updated Title',
+            artist: 'Updated Artist',
+            genres: ['jazz']
+          }
+        }
+      });
+
     const createResult = await createTrack(testTrack);
     expect(isOk(createResult)).toBe(true);
     
@@ -462,6 +140,8 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should fail to update non-existent track', async () => {
+    apolloClient.mutate = vi.fn().mockRejectedValue(new Error('Track not found'));
+
     const updateData: UpdateTrackDto = { title: 'Updated Title' };
     const result = await updateTrack({ id: 'fake-id', data: updateData });
     
@@ -473,6 +153,18 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should delete a track successfully', async () => {
+    apolloClient.mutate = vi.fn()
+      .mockResolvedValueOnce({
+        data: {
+          createTrack: { ...mockTrack, id: '4' }
+        }
+      })
+      .mockResolvedValueOnce({
+        data: {
+          deleteTrack: true
+        }
+      });
+
     const createResult = await createTrack(testTrack);
     expect(isOk(createResult)).toBe(true);
     
@@ -487,6 +179,8 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should fail to delete non-existent track', async () => {
+    apolloClient.mutate = vi.fn().mockRejectedValue(new Error('Track not found'));
+
     const result = await deleteTrack('fake-id');
     
     expect(isErr(result)).toBe(true);
@@ -497,6 +191,26 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should delete multiple tracks successfully', async () => {
+    apolloClient.mutate = vi.fn()
+      .mockResolvedValueOnce({
+        data: {
+          createTrack: { ...mockTrack, id: '5' }
+        }
+      })
+      .mockResolvedValueOnce({
+        data: {
+          createTrack: { ...mockTrack, id: '6', title: 'Test Song 2' }
+        }
+      })
+      .mockResolvedValueOnce({
+        data: {
+          deleteTracks: {
+            success: ['5', '6'],
+            failed: []
+          }
+        }
+      });
+
     const track1 = await createTrack(testTrack);
     const track2 = await createTrack({ ...testTrack, title: 'Test Song 2' });
     
@@ -518,6 +232,21 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should handle partial deletion with some invalid IDs', async () => {
+    apolloClient.mutate = vi.fn()
+      .mockResolvedValueOnce({
+        data: {
+          createTrack: { ...mockTrack, id: '7' }
+        }
+      })
+      .mockResolvedValueOnce({
+        data: {
+          deleteTracks: {
+            success: ['7'],
+            failed: ['fake-id']
+          }
+        }
+      });
+
     const track = await createTrack(testTrack);
     expect(isOk(track)).toBe(true);
     
@@ -548,6 +277,20 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should fetch tracks with search filter', async () => {
+    apolloClient.query = vi.fn().mockResolvedValue({
+      data: {
+        tracks: {
+          data: [mockTrack],
+          meta: {
+            total: 1,
+            page: 1,
+            limit: 10,
+            totalPages: 1,
+          }
+        }
+      }
+    });
+
     const result = await fetchTracks({ search: 'Test Song' });
     
     expect(isOk(result)).toBe(true);
@@ -558,6 +301,20 @@ describe('Track API - Classicist Tests', () => {
   });
 
   test('should fetch tracks with genre filter', async () => {
+    apolloClient.query = vi.fn().mockResolvedValue({
+      data: {
+        tracks: {
+          data: [mockTrack],
+          meta: {
+            total: 1,
+            page: 1,
+            limit: 10,
+            totalPages: 1,
+          }
+        }
+      }
+    });
+
     const result = await fetchTracks({ genre: 'rock' });
     
     expect(isOk(result)).toBe(true);

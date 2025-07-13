@@ -22,12 +22,12 @@ export function useTrackActions() {
     clearSearchTerms,
   } = useTrackStore();
 
-  const [createTrack] = useCreateTrackMutation();
-  const [updateTrack] = useUpdateTrackMutation();
-  const [deleteTrack] = useDeleteTrackMutation();
-  const [deleteMultipleTracks] = useDeleteMultipleTracksMutation();
-  const [uploadAudioFile] = useUploadAudioFileMutation();
-  const [deleteAudioFile] = useDeleteAudioFileMutation();
+  const [createTrack, createTrackMutation] = useCreateTrackMutation();
+  const [updateTrack, updateTrackMutation] = useUpdateTrackMutation();
+  const [deleteTrack, deleteTrackMutation] = useDeleteTrackMutation();
+  const [deleteMultipleTracks, deleteMultipleTracksMutation] = useDeleteMultipleTracksMutation();
+  const [uploadAudioFile, uploadAudioFileMutation] = useUploadAudioFileMutation();
+  const [deleteAudioFile, deleteAudioFileMutation] = useDeleteAudioFileMutation();
 
   const handleSelectTrack = useCallback((id: TrackIdType) => {
     selectTrack(id);
@@ -107,5 +107,11 @@ export function useTrackActions() {
     deleteMultipleTracks,
     uploadAudioFile,
     deleteAudioFile,
+    createTrackMutation,
+    updateTrackMutation,
+    deleteTrackMutation,
+    deleteMultipleTracksMutation,
+    uploadAudioFileMutation,
+    deleteFileMutation: deleteAudioFileMutation,
   };
 } 

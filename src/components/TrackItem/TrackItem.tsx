@@ -5,8 +5,8 @@ import { useUIStore } from '../../stores/uiStore';
 import { gql, useMutation } from '@apollo/client';
 
 const UPLOAD_AUDIO_FILE_MUTATION = gql`
-  mutation UploadAudioFile($id: ID!, $file: Upload!) {
-    uploadAudioFile(id: $id, file: $file) {
+  mutation UploadTrackFile($id: ID!, $file: Upload!) {
+    uploadTrackFile(id: $id, file: $file) {
       id
       title
       artist
@@ -22,8 +22,8 @@ const UPLOAD_AUDIO_FILE_MUTATION = gql`
 `;
 
 const DELETE_AUDIO_FILE_MUTATION = gql`
-  mutation DeleteAudioFile($id: ID!) {
-    deleteAudioFile(id: $id) {
+  mutation DeleteTrackFile($id: ID!) {
+    deleteTrackFile(id: $id) {
       id
       title
       artist

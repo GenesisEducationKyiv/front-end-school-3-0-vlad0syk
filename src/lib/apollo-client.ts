@@ -20,7 +20,17 @@ export const apolloClient = new ApolloClient({
       Query: {
         fields: {
           tracks: {
-            keyArgs: false,
+            keyArgs: ['page', 'limit', 'sort', 'order', 'search', 'genre', 'artist'],
+            merge(_, incoming) {
+              // Always return the incoming data to ensure fresh data is displayed
+              return incoming;
+            },
+          },
+        },
+      },
+      Track: {
+        fields: {
+          genres: {
             merge(_, incoming) {
               return incoming;
             },
@@ -29,4 +39,9 @@ export const apolloClient = new ApolloClient({
       },
     },
   }),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: 'cache-and-network',
+    },
+  },
 }); 

@@ -5,7 +5,7 @@ import SortSelect from './components/SortSelect/SortSelect';
 import CreateTrackModal from './components/modals/CreateTrackModal';
 import EditTrackModal from './components/modals/EditTrackModal';
 import ConfirmDialog from './components/modals/ConfirmDialog';
-import { SortOption, CreateTrackDto, UpdateTrackDto, SortField, SortOrder } from './types';
+import { SortOption, SortField, SortOrder } from './types';
 import { useFiltersState } from './hooks/useFiltersState';
 import { usePagination } from './hooks/usePagination';
 import { useTracksQuery, useGenresQuery } from './hooks/useTrackQueries';
@@ -82,7 +82,7 @@ function App() {
         deleteFileMutation,
         createTrackMutation,
         updateTrackMutation
-    } = useTrackActions(queryParams);
+    } = useTrackActions();
 
     const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const [sort, order] = event.target.value.split('_');
@@ -99,13 +99,13 @@ function App() {
         clearFilters();
     };
 
-    const paginationMeta = tracksData?.meta;
+    const paginationMeta = tracksData?.tracks?.meta;
     const currentSortValue = `${queryParams.sort || 'title'}_${queryParams.order || 'asc'}` as SortOption['value'];
 
     const isControlsLoading = isLoadingTracks || isLoadingGenres ||
-        createTrackMutation.isPending || updateTrackMutation.isPending ||
-        deleteTrackMutation.isPending || deleteMultipleTracksMutation.isPending ||
-        deleteFileMutation.isPending;
+        createTrackMutation.loading || updateTrackMutation.loading ||
+        deleteTrackMutation.loading || deleteMultipleTracksMutation.loading ||
+        deleteFileMutation.loading;
 
     if (isErrorGenres) {
         console.error("Помилка завантаження жанрів:", errorGenres);
@@ -173,12 +173,12 @@ function App() {
                 <button
                     data-testid="create-track-button"
                     onClick={openCreateModal}
-                    disabled={createTrackMutation.isPending || isControlsLoading}
+                    disabled={createTrackMutation.loading || isControlsLoading}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    data-loading={createTrackMutation.isPending ? 'true' : 'false'}
-                    aria-disabled={createTrackMutation.isPending ? 'true' : 'false'}
+                    data-loading={createTrackMutation.loading ? 'true' : 'false'}
+                    aria-disabled={createTrackMutation.loading ? 'true' : 'false'}
                 >
-                    {createTrackMutation.isPending ? 'Створення...' : 'Створити трек'}
+                    {createTrackMutation.loading ? 'Створення...' : 'Створити трек'}
                 </button>
 
                 {(() => {
@@ -186,12 +186,12 @@ function App() {
                         <button
                             data-testid="bulk-delete-button"
                             onClick={handleBulkDelete}
-                            disabled={deleteMultipleTracksMutation.isPending || isControlsLoading}
+                            disabled={deleteMultipleTracksMutation.loading || isControlsLoading}
                             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                            data-loading={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
-                            aria-disabled={deleteMultipleTracksMutation.isPending ? 'true' : 'false'}
+                            data-loading={deleteMultipleTracksMutation.loading ? 'true' : 'false'}
+                            aria-disabled={deleteMultipleTracksMutation.loading ? 'true' : 'false'}
                         >
-                            {deleteMultipleTracksMutation.isPending ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
+                            {deleteMultipleTracksMutation.loading ? 'Видалення...' : `Видалити вибрані (${selectedTrackIds.size})`}
                         </button>
                     );
                 })()}
@@ -214,13 +214,9 @@ function App() {
             )}
 
             <TrackList
-                page={currentPage}
-                limit={queryParams.limit}
-                sort={queryParams.sort}
-                order={queryParams.order}
-                search={queryParams.search}
-                genre={queryParams.genre}
-                artist={queryParams.artist}
+                data={tracksData?.tracks}
+                loading={isLoadingTracks}
+                error={errorTracks}
                 meta={paginationMeta}
                 onPageChange={handlePageChange}
             />
@@ -254,11 +250,11 @@ function App() {
                 onClose={closeCreateModal}
             />
 
-            {trackToEdit?.id && (
+            {trackToEdit?.slug && (
                 <EditTrackModal
                     isOpen={isEditModalOpen}
                     onClose={closeEditModal}
-                    trackToEditId={trackToEdit.id}
+                    trackToEditSlug={trackToEdit.slug}
                 />
             )}
             
@@ -266,7 +262,8 @@ function App() {
                 <ConfirmDialog
                     isOpen={isConfirmDialogOpen}
                     onClose={closeConfirmDialog}
-                    trackId={Array.isArray(pendingDeleteContext.id) ? pendingDeleteContext.id[0] : pendingDeleteContext.id}
+                    trackId={Array.isArray(pendingDeleteContext.id) ? undefined : pendingDeleteContext.id}
+                    trackIds={Array.isArray(pendingDeleteContext.id) ? pendingDeleteContext.id : undefined}
                 />
             )}
 
@@ -275,4 +272,4 @@ function App() {
     );
 }
 
-export default App; 
+export default App;
