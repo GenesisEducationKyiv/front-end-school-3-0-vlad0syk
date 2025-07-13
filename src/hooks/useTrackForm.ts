@@ -62,10 +62,10 @@ export const useTrackForm = ({ mode, isOpen, trackToEditSlug, onSubmit, onClose 
                 .then(result => {
                     if (result.isOk()) {
                         console.log('Track fetched successfully:', result.value);
-                        setTrackToEdit(result.value);
+                        setTrackToEdit(result.value || null);
                     } else {
                         console.error('Failed to fetch track:', result.error);
-                        alert(`Помилка завантаження треку: ${result.error.message}`);
+                        alert(`Помилка завантаження треку: ${result.error?.message || 'Unknown error'}`);
                     }
                 })
                 .catch(error => {
