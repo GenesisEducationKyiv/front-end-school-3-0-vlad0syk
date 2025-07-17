@@ -20,7 +20,7 @@ export const CreateTrackButton: React.FC = () => {
     if (result.isErr()) {
       setError('Error!');
     }
-    // Можно добавить логику обновления списка треков, если нужно
+
   };
 
   return (

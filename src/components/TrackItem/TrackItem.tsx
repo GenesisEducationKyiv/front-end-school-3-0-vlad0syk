@@ -55,7 +55,7 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
   const setPlayingTrack = useTrackStore(state => state.setPlayingTrack);
   const openEditModal = useUIStore(state => state.openEditModal);
 
-  // Apollo mutations
+
   const [uploadAudioFile, { loading: uploading }] = useMutation(UPLOAD_AUDIO_FILE_MUTATION);
   const [deleteAudioFile, { loading: deleting }] = useMutation(DELETE_AUDIO_FILE_MUTATION);
 

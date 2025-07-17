@@ -1,20 +1,16 @@
 import { create } from 'zustand';
 
 interface UIState {
-  // Modal states
   isCreateModalOpen: boolean;
   isEditModalOpen: boolean;
   isConfirmDialogOpen: boolean;
   
-  // Modal data
   trackToEdit: { id: string; slug: string } | null;
   confirmDialogMessage: string;
   pendingDeleteContext: { type: 'track'; id: string | string[] } | { type: 'file'; id: string } | null;
   
-  // Loading states
   isControlsLoading: boolean;
   
-  // Actions
   openCreateModal: () => void;
   closeCreateModal: () => void;
   openEditModal: (track: { id: string; slug: string }) => void;
@@ -25,7 +21,6 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  // Initial state
   isCreateModalOpen: false,
   isEditModalOpen: false,
   isConfirmDialogOpen: false,
@@ -34,7 +29,6 @@ export const useUIStore = create<UIState>((set) => ({
   pendingDeleteContext: null,
   isControlsLoading: false,
   
-  // Actions
   openCreateModal: () => set({ isCreateModalOpen: true }),
   closeCreateModal: () => set({ isCreateModalOpen: false }),
   
