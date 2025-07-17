@@ -8,6 +8,7 @@ import ConfirmDialog from './components/modals/ConfirmDialog';
 import { SortOption, SortField, SortOrder } from './types';
 import { useFiltersState } from './hooks/useFiltersState';
 import { usePagination } from './hooks/usePagination';
+import { Button } from './components/Button/Button';
 import { useTracksQuery, useGenresQuery } from './hooks/useTrackQueries';
 import { useTrackActions } from './hooks/useTrackActions';
 import { useUIStore } from './stores/uiStore';
@@ -170,16 +171,15 @@ function App() {
                     />
                 </div>
 
-                <button
+                <Button
                     data-testid="create-track-button"
                     onClick={openCreateModal}
                     disabled={createTrackMutation.loading || isControlsLoading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    data-loading={createTrackMutation.loading ? 'true' : 'false'}
-                    aria-disabled={createTrackMutation.loading ? 'true' : 'false'}
+                    variant="contained"
+                    size="medium"
                 >
                     {createTrackMutation.loading ? 'Створення...' : 'Створити трек'}
-                </button>
+                </Button>
 
                 {(() => {
                     return selectedTrackIds.size > 0 && (
