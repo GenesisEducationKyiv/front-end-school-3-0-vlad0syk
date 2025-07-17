@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TextField } from '../components/TextField/TextField';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from '../theme/theme';

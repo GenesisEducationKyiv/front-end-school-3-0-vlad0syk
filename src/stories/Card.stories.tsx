@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ThemeProvider } from '@mui/material/styles';
 import { Card, SimpleCard, MediaCard } from '../components/Card/Card';
 import { theme } from '../theme/theme';
@@ -29,7 +29,7 @@ export default meta;
 type Story = StoryObj<typeof Card>;
 
 export const Basic: Story = {
-  render: (args: any) => (
+  render: (args) => (
     <Card {...args}>
       <Typography variant="h5" component="div">
         Basic Card
@@ -47,7 +47,7 @@ export const WithHeader: Story = {
     title: "Card with Header",
     subheader: "September 14, 2023",
   },
-  render: (args: any) => (
+  render: (args) => (
     <Card {...args}>
       <Typography variant="body2" color="text.secondary">
         This card has a header with a title and subheader.
@@ -62,7 +62,7 @@ export const WithImage: Story = {
     imageAlt: "Random image",
     title: "Card with Image",
   },
-  render: (args: any) => (
+  render: (args) => (
     <Card {...args}>
       <Typography variant="body2" color="text.secondary">
         This card has an image at the top.
@@ -81,7 +81,7 @@ export const WithActions: Story = {
       </>
     ),
   },
-  render: (args: any) => (
+  render: (args) => (
     <Card {...args}>
       <Typography variant="body2" color="text.secondary">
         This card has action buttons at the bottom.
@@ -94,7 +94,7 @@ export const OutlinedVariant: Story = {
   args: {
     variant: 'outlined',
   },
-  render: (args: any) => (
+  render: (args) => (
     <Card {...args}>
       <Typography variant="h5" component="div">
         Outlined Card
