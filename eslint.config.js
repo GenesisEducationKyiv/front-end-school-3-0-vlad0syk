@@ -1,28 +1,27 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
-
 import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
+import typescriptEslint from '@typescript-eslint/eslint-plugin';
 
-export default tseslint.config({
+// Базові налаштування для всіх файлів
+const baseConfig = {
   ignores: [
     'dist',
     'node_modules',
     '.nx/',
+    '.storybook/',
+    'src/stories/',
     'playwright.config.ts',
     'vitest.config.ts',
   ],
-}, {
+};
+
+// Конфігурація для TypeScript файлів
+const typescriptConfig = {
   files: ['**/*.{ts,tsx}'],
-  extends: [
-    js.configs.recommended,
-    ...tseslint.configs.strict,
-    // ...tseslint.configs.strictTypeChecked,
-    // ...tseslint.configs.stylisticTypeChecked,
-  ],
+  ignores: ['.storybook/**', 'src/stories/**', '**/*.stories.tsx'],
   languageOptions: {
     parser: tseslint.parser,
     parserOptions: {
@@ -34,6 +33,7 @@ export default tseslint.config({
     globals: globals.browser,
   },
   plugins: {
+    '@typescript-eslint': typescriptEslint,
     'react-hooks': reactHooks,
     'react-refresh': reactRefresh,
   },
@@ -48,12 +48,29 @@ export default tseslint.config({
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-non-null-assertion': 'error',
   },
-}, {
-  files: ['**/*.js'],
-  extends: [js.configs.recommended],
+};
+
+// Конфігурація для Storybook файлів
+const storybookConfig = {
+  files: ['.storybook/**/*.ts', 'src/stories/**/*.tsx'],
   languageOptions: {
-    ecmaVersion: 2020,
-    sourceType: 'module',
-    globals: globals.node,
+    parser: tseslint.parser,
+    parserOptions: {
+      project: ['./.storybook/tsconfig.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
   },
-}, storybook.configs["flat/recommended"]);
+  rules: {
+    // Додаткові правила для Storybook
+  },
+};
+
+// Експортуємо конфігурацію
+// @ts-ignore
+const config = tseslint.config(
+  baseConfig,
+  typescriptConfig,
+  storybookConfig
+);
+
+export default config;
