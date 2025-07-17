@@ -7,6 +7,12 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { BrowserRouter } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/client';
 import { apolloClient } from './lib/apollo-client';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme/theme';
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,8 +36,11 @@ ReactDOM.createRoot(root).render(
     <BrowserRouter>
       <ApolloProvider client={apolloClient}>
         <QueryClientProvider client={queryClient}>
-          <App />
-          <ReactQueryDevtools initialIsOpen={false} />
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <App />
+            <ReactQueryDevtools initialIsOpen={false} />
+          </ThemeProvider>
         </QueryClientProvider>
       </ApolloProvider>
     </BrowserRouter>
