@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": {
+    "outDir": "../dist/.storybook",
+    "baseUrl": "..",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": [
+    ".",
+    "../src/stories/**/*.ts",
+    "../src/stories/**/*.tsx"
+  ]
+}
