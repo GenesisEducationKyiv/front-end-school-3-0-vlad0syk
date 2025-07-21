@@ -1,6 +1,7 @@
-import React from 'react';
-import { Track, PaginatedResponse } from '../../types';
+import React, { memo } from 'react';
 import TrackItem from '../TrackItem/TrackItem';
+import type { Track } from '../../types/track';
+import type { PaginatedResponse } from '../../types/api';
 
 interface TrackListProps {
   data?: PaginatedResponse<Track>;
@@ -15,12 +16,12 @@ interface TrackListProps {
   onPageChange?: (page: number) => void;
 }
 
-const TrackList: React.FC<TrackListProps> = ({
+const TrackList: React.FC<TrackListProps> = memo(({
   data,
   loading,
   error,
   meta,
-  onPageChange,
+  onPageChange
 }) => {
   if (loading) return (
     <div className="flex justify-center items-center min-h-[200px]">
@@ -28,14 +29,14 @@ const TrackList: React.FC<TrackListProps> = ({
       <span className="text-lg text-gray-400">Завантаження треків...</span>
     </div>
   );
-  
+
   if (error) return (
     <div className="flex flex-col items-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative my-4">
       <span className="font-semibold">Помилка завантаження треків:</span> {error.message}
     </div>
   );
 
-  const tracksArray = data?.data ?? [];
+  const tracksArray = data?.items ?? [];
   const metaData = meta || data?.meta;
 
   return (
@@ -86,6 +87,8 @@ const TrackList: React.FC<TrackListProps> = ({
       )}
     </div>
   );
-};
+});
+
+TrackList.displayName = 'TrackList';
 
 export default TrackList;

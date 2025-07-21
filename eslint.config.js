@@ -4,6 +4,16 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
+// Custom globals for service worker
+const serviceWorkerGlobals = {
+  self: 'readonly',
+  caches: 'readonly',
+  fetch: 'readonly',
+  skipWaiting: 'readonly',
+  clients: 'readonly',
+  workbox: 'readonly'
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -12,7 +22,23 @@ export default tseslint.config(
       '.nx/',
       'playwright.config.ts',
       'vitest.config.ts',
+      '**/*.d.ts', // Ignore all .d.ts files
     ],
+  },
+  {
+    // Configuration for service worker files
+    files: ['**/sw.js'],
+    languageOptions: {
+      globals: {
+        ...globals.serviceworker,
+        self: 'readonly',
+        caches: 'readonly',
+        skipWaiting: 'readonly',
+        clients: 'readonly',
+        workbox: 'readonly',
+        fetch: 'readonly',
+      },
+    },
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -30,7 +56,10 @@ export default tseslint.config(
       },
       ecmaVersion: 2020,
       sourceType: 'module',
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        ...serviceWorkerGlobals
+      },
     },
     plugins: {
       'react-hooks': reactHooks,

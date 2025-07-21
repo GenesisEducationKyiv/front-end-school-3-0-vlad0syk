@@ -1,8 +1,12 @@
-import React, { Suspense, useRef } from 'react';
-import { Track } from '../../types';
-import { useTrackStore } from '../../stores/trackStore';
-import { useUIStore } from '../../stores/uiStore';
+import React, { useRef, memo, useCallback } from 'react';
+import { Track } from '@/types';
+import { useTrackStore } from '@/stores/trackStore';
+import { useUIStore } from '@/stores/uiStore';
 import { gql, useMutation } from '@apollo/client';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+
+// TrackActions import removed as it's not being used
 
 const UPLOAD_AUDIO_FILE_MUTATION = gql`
   mutation UploadTrackFile($id: ID!, $file: Upload!) {
@@ -43,10 +47,12 @@ interface TrackItemProps {
   testId?: string;
 }
 
-const AudioPlayer = React.lazy(() => import('../lazy/AudioPlayer'));
 
-const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
+const TrackItem: React.FC<TrackItemProps> = memo(({ track, testId }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadAudioFile] = useMutation(UPLOAD_AUDIO_FILE_MUTATION);
+  const [deleteAudioFile] = useMutation(DELETE_AUDIO_FILE_MUTATION);
+  const { uploadFile, uploading } = useFileUpload();
 
   const isTrackSelected = useTrackStore(state => state.isTrackSelected(track.id));
   const isTrackPlaying = useTrackStore(state => state.isTrackPlaying(track.id));
@@ -55,12 +61,15 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
   const setPlayingTrack = useTrackStore(state => state.setPlayingTrack);
   const openEditModal = useUIStore(state => state.openEditModal);
 
-  // Apollo mutations
-  const [uploadAudioFile, { loading: uploading }] = useMutation(UPLOAD_AUDIO_FILE_MUTATION);
-  const [deleteAudioFile, { loading: deleting }] = useMutation(DELETE_AUDIO_FILE_MUTATION);
+  const handlePlayToggle = useCallback(() => {
+    setPlayingTrack(isTrackPlaying ? null : track.id);
+  }, [isTrackPlaying, track.id, setPlayingTrack]);
 
-  // Replace this with your own audio player hook or logic, or use the AudioPlayer component directly below.
-  // Example: Remove this block and use the AudioPlayer component in the JSX where needed.
+  const audioPlayer = useAudioPlayer({
+    track,
+    isPlaying: isTrackPlaying,
+    onPlayToggle: handlePlayToggle
+  });
 
   const handleCheckboxChange = () => {
     if (isTrackSelected) {
@@ -70,46 +79,55 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
     }
   };
 
-  const handleUploadFile = async (file: File) => {
-    await uploadAudioFile({
-      variables: { id: track.id, file },
-      // Optionally: refetchQueries or update cache
-    });
-  };
+  const handleUploadFile = useCallback(async (file: File) => {
+    try {
+      await uploadFile(file, async (file: File) => {
+        await uploadAudioFile({
+          variables: { id: track.id, file },
+        });
+      });
+    } catch (error) {
+      console.error('Error uploading audio file:', error);
+      throw error;
+    }
+  }, [track.id, uploadAudioFile, uploadFile]);
 
   const handleDeleteFile = async () => {
-    await deleteAudioFile({
-      variables: { id: track.id },
-      // Optionally: refetchQueries or update cache
-    });
+    try {
+      await deleteAudioFile({
+        variables: { id: track.id },
+        // Optionally: refetchQueries or update cache
+      });
+    } catch (error) {
+      console.error('Error deleting audio file:', error);
+    }
   };
 
   return (
     <div
       data-testid={testId}
-      className={`relative bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 ${
-        isTrackSelected ? 'ring-2 ring-blue-400' : ''
-      }`}
+      className={`relative bg-gray-800 rounded-lg p-4 border-2 transition-all duration-200 ${isTrackSelected ? 'border-blue-500 bg-blue-900/20' : 'border-gray-700 hover:border-gray-600'
+        }`}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-2">
           <input
             type="checkbox"
             checked={isTrackSelected}
             onChange={handleCheckboxChange}
-            className="w-5 h-5 text-blue-600 bg-gray-200 dark:bg-gray-700 border-gray-400 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2 transition"
+            className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
           />
-          <h3 className="text-gray-900 dark:text-white font-bold text-base truncate max-w-[160px]">
+          <h3 className="text-white font-semibold text-sm truncate max-w-[120px]">
             {track.title}
           </h3>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex space-x-1">
           <button
             onClick={() => openEditModal({ id: track.id, slug: track.slug })}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-700 text-gray-500 hover:text-blue-600 transition"
+            className="p-1 text-gray-400 hover:text-white transition-colors"
             title="Редагувати"
           >
-            <img src="/pencil.svg" alt="Edit" className="w-5 h-5" />
+            <img src="/pencil.svg" alt="Edit" className="w-4 h-4" loading="lazy" />
           </button>
         </div>
       </div>
@@ -117,11 +135,16 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
       <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 truncate">{track.artist}</p>
 
       {track.coverImage && (
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <img
             src={track.coverImage}
             alt={`Cover for ${track.title}`}
-            className="w-full h-36 object-cover rounded-xl shadow"
+            className="w-full h-32 object-cover rounded"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </div>
       )}
@@ -142,55 +165,65 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
           <button
             onClick={() => setPlayingTrack(isTrackPlaying ? null : track.id)}
             disabled={!track.audioFile}
-            className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full transition-colors shadow"
+            className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full transition-colors shadow"
             title={track.audioFile ? (isTrackPlaying ? 'Пауза' : 'Грати') : 'Немає аудіофайлу'}
           >
             <img
               src={isTrackPlaying ? "/pause.svg" : "/play.svg"}
               alt={isTrackPlaying ? "Pause" : "Play"}
               className="w-5 h-5"
+              loading="lazy"
             />
           </button>
 
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="p-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed rounded-full transition-colors shadow"
+            className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded transition-colors"
             title="Завантажити аудіофайл"
           >
-            <img src="/upload.svg" alt="Upload" className="w-5 h-5" />
+            <img src="/upload.svg" alt="Upload" className="w-4 h-4" loading="lazy" />
           </button>
 
           {track.audioFile && (
             <button
-              onClick={handleDeleteFile}
-              disabled={deleting}
-              className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-colors shadow"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFile();
+              }}
+              className="p-2 bg-red-600 hover:bg-red-700 rounded transition-colors"
               title="Видалити аудіофайл"
             >
-              <img src="/trash.svg" alt="Delete file" className="w-5 h-5" />
+              <img src="/trash.svg" alt="Delete file" className="w-4 h-4" loading="lazy" />
             </button>
           )}
         </div>
 
         {track.audioFile && (
-          <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
-            <img src="/music.svg" alt="Audio" className="w-4 h-4 inline mr-1" />
-            <span className="font-semibold">✓</span>
+          <div className="text-xs text-gray-400">
+            <img src="/music.svg" alt="Audio" className="w-4 h-4 inline mr-1" loading="lazy" />
+            ✓
           </div>
         )}
       </div>
 
-      {/* Progress bar placeholder removed because audioProgress is not defined */}
+      {audioPlayer.audioProgress > 0 && (
+        <div className="w-full bg-gray-700 rounded-full h-1.5 mt-2 mb-2">
+          <div
+            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${audioPlayer.audioProgress}%` }}
+          />
+        </div>
+      )}
 
       {track.audioFile && (
-        <Suspense fallback={<div>Завантаження аудіоплеєра...</div>}>
-          <AudioPlayer
-            track={track}
-            isPlaying={isTrackPlaying}
-            onPlayToggle={() => setPlayingTrack(isTrackPlaying ? null : track.id)}
-          />
-        </Suspense>
+        <audio
+          ref={audioPlayer.audioRef}
+          src={track.audioFile}
+          onTimeUpdate={audioPlayer.handleTimeUpdate}
+          onEnded={audioPlayer.handleAudioEnded}
+          className="w-full mt-2"
+        />
       )}
 
       <input
@@ -200,7 +233,11 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
         onChange={async (event) => {
           const file = event.target.files?.[0];
           if (file) {
-            await handleUploadFile(file);
+            try {
+              await handleUploadFile(file);
+            } catch (error) {
+              console.error('Error uploading file:', error);
+            }
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
@@ -210,6 +247,8 @@ const TrackItem: React.FC<TrackItemProps> = ({ track, testId }) => {
       />
     </div>
   );
-};
+});
+
+TrackItem.displayName = 'TrackItem';
 
 export default TrackItem;

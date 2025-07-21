@@ -1,10 +1,7 @@
-import React from 'react';
+import React, { Suspense, memo } from 'react';
 import SearchInput from './components/SearchInput/SearchInput';
 import TrackList from './components/TrackList/TrackList';
 import SortSelect from './components/SortSelect/SortSelect';
-import CreateTrackModal from './components/modals/CreateTrackModal';
-import EditTrackModal from './components/modals/EditTrackModal';
-import ConfirmDialog from './components/modals/ConfirmDialog';
 import { SortOption, SortField, SortOrder } from './types';
 import { useFiltersState } from './hooks/useFiltersState';
 import { usePagination } from './hooks/usePagination';
@@ -15,14 +12,30 @@ import { useTrackStore } from './stores/trackStore';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-if (typeof window !== 'undefined') {
-    const win = window as Window & { Cypress?: unknown; PW_TEST?: unknown };
-    if (win.Cypress || win.PW_TEST) {
-        const style = document.createElement('style');
-        style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
-        document.head.appendChild(style);
-    }
-}
+// Lazy load heavy components with better error handling
+const CreateTrackModal = React.lazy(() =>
+    import('./components/modals/CreateTrackModal').catch(() => ({
+        default: () => <div>Помилка завантаження модалки створення</div>
+    }))
+);
+const EditTrackModal = React.lazy(() =>
+    import('./components/modals/EditTrackModal').catch(() => ({
+        default: () => <div>Помилка завантаження модалки редагування</div>
+    }))
+);
+
+
+// Loading fallback component
+const LoadingFallback = memo(() => (
+    <div className="flex items-center justify-center p-4">
+        <div className="loading-spinner"></div>
+    </div>
+));
+LoadingFallback.displayName = 'LoadingFallback';
+
+// Valid sort fields and orders
+const validSortFields: SortField[] = ['title', 'artist', 'album', 'createdAt'];
+const validSortOrders: SortOrder[] = ['asc', 'desc'];
 
 const SORT_OPTIONS: SortOption[] = [
     { value: 'title_asc', label: 'Назва (А-Я)' },
@@ -33,8 +46,19 @@ const SORT_OPTIONS: SortOption[] = [
     { value: 'createdAt_asc', label: 'Дата додавання (старіші)' },
 ];
 
-const validSortFields: SortField[] = ['title', 'artist', 'album', 'createdAt'];
-const validSortOrders: SortOrder[] = ['asc', 'desc'];
+// Extend the Window interface to include test properties
+declare global {
+  interface Window {
+    Cypress?: unknown;
+    PW_TEST?: boolean;
+  }
+}
+
+if (typeof window !== 'undefined' && (window.Cypress || window.PW_TEST)) {
+    const style = document.createElement('style');
+    style.innerHTML = `.Toastify__toast-container { pointer-events: none !important; }`;
+    document.head.appendChild(style);
+}
 
 function App() {
     const {
@@ -56,13 +80,10 @@ function App() {
 
     const isCreateModalOpen = useUIStore(state => state.isCreateModalOpen);
     const isEditModalOpen = useUIStore(state => state.isEditModalOpen);
-    const isConfirmDialogOpen = useUIStore(state => state.isConfirmDialogOpen);
     const trackToEdit = useUIStore(state => state.trackToEdit);
-    const pendingDeleteContext = useUIStore(state => state.pendingDeleteContext);
     const openCreateModal = useUIStore(state => state.openCreateModal);
     const closeCreateModal = useUIStore(state => state.closeCreateModal);
     const closeEditModal = useUIStore(state => state.closeEditModal);
-    const closeConfirmDialog = useUIStore(state => state.closeConfirmDialog);
 
     const searchTerm = queryParams.search || '';
     const artistFilterTerm = queryParams.artist || '';
@@ -245,29 +266,34 @@ function App() {
                 </div>
             )}
 
-            <CreateTrackModal
-                isOpen={isCreateModalOpen}
-                onClose={closeCreateModal}
+            <Suspense fallback={<LoadingFallback />}>
+                {isCreateModalOpen && (
+                    <CreateTrackModal
+                        isOpen={isCreateModalOpen}
+                        onClose={closeCreateModal}
+                    />
+                )}
+                {isEditModalOpen && trackToEdit?.slug && (
+                    <EditTrackModal
+                        isOpen={isEditModalOpen}
+                        onClose={closeEditModal}
+                        trackToEditSlug={trackToEdit.slug}
+                    />
+                )}
+            </Suspense>
+
+            <ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                data-testid="toast-container"
             />
-
-            {trackToEdit?.slug && (
-                <EditTrackModal
-                    isOpen={isEditModalOpen}
-                    onClose={closeEditModal}
-                    trackToEditSlug={trackToEdit.slug}
-                />
-            )}
-            
-            {pendingDeleteContext?.type === 'track' && (
-                <ConfirmDialog
-                    isOpen={isConfirmDialogOpen}
-                    onClose={closeConfirmDialog}
-                    trackId={Array.isArray(pendingDeleteContext.id) ? undefined : pendingDeleteContext.id}
-                    trackIds={Array.isArray(pendingDeleteContext.id) ? pendingDeleteContext.id : undefined}
-                />
-            )}
-
-            <ToastContainer />
         </div>
     );
 }
