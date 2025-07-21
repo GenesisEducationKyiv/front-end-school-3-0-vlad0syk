@@ -5,20 +5,14 @@ import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { BrowserRouter } from 'react-router-dom';
-import ErrorBoundary from './components/ErrorBoundary';
-
-// Register service worker for caching
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered: ', registration);
-      })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
-  });
-}
+import { ErrorBoundary } from 'react-error-boundary';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ErrorFallback } from '@/components/ErrorBoundary/ErrorFallback';
+import theme from './theme/theme';
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,11 +33,20 @@ if (!root) throw new Error("Root element with ID 'root' not found.");
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <ErrorBoundary>
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onReset={() => {
+        // Reset the state of your app here if needed
+        window.location.href = '/';
+      }}
+    >
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
-          <App />
-          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <App />
+            <ReactQueryDevtools initialIsOpen={false} />
+          </ThemeProvider>
         </QueryClientProvider>
       </BrowserRouter>
     </ErrorBoundary>

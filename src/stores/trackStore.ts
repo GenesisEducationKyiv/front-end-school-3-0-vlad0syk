@@ -2,17 +2,10 @@ import { create } from 'zustand';
 import { TrackIdType } from '../types';
 
 interface TrackState {
-  // Track selections
   selectedTrackIds: Set<TrackIdType>;
-  
-  // Playing state
   playingTrackId: TrackIdType | null;
-  
-  // Search and filter terms
   searchTerm: string;
   artistFilterTerm: string;
-  
-  // Actions
   selectTrack: (id: TrackIdType) => void;
   deselectTrack: (id: TrackIdType) => void;
   clearSelections: () => void;
@@ -25,19 +18,15 @@ interface TrackState {
 }
 
 export const useTrackStore = create<TrackState>((set, get) => ({
-  // Initial state
   selectedTrackIds: new Set(),
   playingTrackId: null,
   searchTerm: '',
   artistFilterTerm: '',
-  
-  // Actions
   selectTrack: (id: TrackIdType) => set((state) => {
     const newSelectedIds = new Set(state.selectedTrackIds);
     newSelectedIds.add(id);
     return { selectedTrackIds: newSelectedIds };
   }),
-  
   deselectTrack: (id: TrackIdType) => set((state) => {
     const newSelectedIds = new Set(state.selectedTrackIds);
     newSelectedIds.delete(id);

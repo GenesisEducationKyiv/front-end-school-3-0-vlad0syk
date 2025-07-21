@@ -47,12 +47,11 @@ interface TrackItemProps {
   testId?: string;
 }
 
-
 const TrackItem: React.FC<TrackItemProps> = memo(({ track, testId }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadAudioFile] = useMutation(UPLOAD_AUDIO_FILE_MUTATION);
+  const [uploadAudioFile, { loading: uploading }] = useMutation(UPLOAD_AUDIO_FILE_MUTATION);
   const [deleteAudioFile] = useMutation(DELETE_AUDIO_FILE_MUTATION);
-  const { uploadFile, uploading } = useFileUpload();
+  const { uploadFile } = useFileUpload();
 
   const isTrackSelected = useTrackStore(state => state.isTrackSelected(track.id));
   const isTrackPlaying = useTrackStore(state => state.isTrackPlaying(track.id));
@@ -61,14 +60,10 @@ const TrackItem: React.FC<TrackItemProps> = memo(({ track, testId }) => {
   const setPlayingTrack = useTrackStore(state => state.setPlayingTrack);
   const openEditModal = useUIStore(state => state.openEditModal);
 
-  const handlePlayToggle = useCallback(() => {
-    setPlayingTrack(isTrackPlaying ? null : track.id);
-  }, [isTrackPlaying, track.id, setPlayingTrack]);
-
   const audioPlayer = useAudioPlayer({
     track,
     isPlaying: isTrackPlaying,
-    onPlayToggle: handlePlayToggle
+    onPlayToggle: () => setPlayingTrack(isTrackPlaying ? null : track.id)
   });
 
   const handleCheckboxChange = () => {
